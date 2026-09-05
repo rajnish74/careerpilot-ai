@@ -43,11 +43,11 @@
                 <scope>import</scope>
             </dependency>
 
-            <!--            <dependency>-->
-            <!--                <groupId>com.rajnish.jb</groupId>-->
-            <!--                <artifactId>job-portal-common</artifactId>-->
-            <!--                <version>${project.version}</version>-->
-            <!--            </dependency>-->
+            <dependency>
+                <groupId>com.rajnish.job</groupId>
+                <artifactId>job-portal-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>

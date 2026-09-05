@@ -9,7 +9,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 ## ✅ Done
 
 - [x] Multi-module Maven project scaffolded (`job-portal-system` parent pom)
-    - Modules: `cloud`, `common-lib`, `services`
+  - Modules: `cloud`, `common-lib`, `services`
 - [x] Parent POM configured: Java 21, Spring Boot 4.1.1, Spring Cloud 2025.1.0
 - [x] `job-portal-cloud` module created (pom only, no services yet)
 - [x] `job-portal-common` module created with validation, lombok, jackson-annotations deps
@@ -18,14 +18,6 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] `HomeController` created with a working `GET /` → returns `"Hello World"`
 - [x] `application.yaml` present in `job-portal-user-service`
 
----
-
-## 🟡 In Progress
-
-- [ ] Fixing dependency issues in `job-portal-user-service/pom.xml`:
-    - `spring-boot-starter-webmvc` → should be `spring-boot-starter-web`
-    - `spring-boot-starter-data-jpa-test` / `spring-boot-starter-webmvc-test` → should be `spring-boot-starter-test`
-- [ ] Fixing `jib.maven.plugin` artifactId → should be `jib-maven-plugin` (in parent pom pluginManagement)
 
 ---
 
@@ -37,11 +29,14 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `api-gateway` submodule (Spring Cloud Gateway)
 
 ### User Service
-- [ ] User entity + Postgres schema
-- [ ] Registration / Login endpoints
-- [ ] JWT generation & validation (jjwt already in dependencyManagement)
-- [ ] Role-based access (JOB_SEEKER / RECRUITER / ADMIN)
+- [x] User entity + Postgres schema (`User`, `UserRole`, `UserStatus`)
+- [x] Signup endpoint (`POST /auth/signup`) with validation (`SignupRequest`)
+- [ ] Login endpoint (`POST /auth/login`) — currently returns `null`, not implemented
+- [ ] JWT generation & validation (currently returns a `"dummy jwt"` placeholder)
+- [ ] Password hashing (BCrypt) — passwords currently stored in plain text
+- [ ] Role-based access (JOB_SEEKER / EMPLOYER / ADMIN) — enum done, security not wired yet
 - [ ] Profile management (resume upload, skills, experience)
+- [ ] Global exception handler (`@ControllerAdvice`) — signup currently throws raw `Exception`
 
 ### Job Service (new module)
 - [ ] Job posting CRUD
@@ -95,5 +90,16 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - Identified and fixed pom.xml dependency naming issues across modules (`spring-boot-starter-web`, `spring-boot-starter-test`, `jib-maven-plugin`).
 - Fixed folder/artifactId naming consistency, added `.gitignore`.
 - Created `README.md` and `progress.md` to track architecture & tasks going forward.
+
+### 2026-09-05
+- Added `User` entity (`id`, `fullName`, `email`, `password`, `phone`, `profileImage`, `role`, `status`, timestamps, `lastLogin`, `suspendedAt`, `deletedAt`).
+- Added `UserRole` enum (`ROLE_ADMIN`, `ROLE_JOB_SEEKER`, `ROLE_EMPLOYER`) and `UserStatus` enum (`ACTIVE`, `INACTIVE`, `SUSPENDED`, `DELETED`).
+- Added `UserRepository` (`findByEmail`, `existsByEmail`).
+- Added `SignupRequest` / `LoginRequest` payloads with bean validation.
+- Added `AuthResponse` and `UserResponse` DTOs + `UserMapper`.
+- Implemented `AuthServiceImpl.signup()` — checks duplicate email, blocks self-registration as `ROLE_ADMIN`, saves user, returns `AuthResponse`.
+- Added `AuthController` with `POST /auth/signup`.
+- `login()` stubbed out (returns `null`) — pending implementation.
+- **To fix next:** remove `password` from `UserResponse` (currently leaked in API response), hash passwords with BCrypt, replace `"dummy jwt"` with real JWT issuance, implement `login()`, add a global `@ControllerAdvice` for exceptions.
 
 <!-- Add new dated entries above this line as you make progress -->
