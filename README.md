@@ -120,7 +120,7 @@ job-portal-system (parent pom)
 |---|---|---|
 | `job-portal-cloud` | Infra module (config server, Eureka, gateway) | 🔴 Not started |
 | `job-portal-common` | Shared DTOs, enums, exceptions | 🟡 Scaffolded |
-| `job-portal-user-service` | Auth, JWT, user profile | 🟡 In progress (signup + login + JWT done; validation filter pending) |
+| `job-portal-user-service` | Auth, JWT, user profile | 🟡 In progress (signup, login, JWT, profile & admin endpoints done; JWT validation filter & role checks pending) |
 | `job-service` | Job postings, search, filters | 🔴 Not started |
 | `application-service` | Job applications, tracking | 🔴 Not started |
 | `ai-service` | Gemini AI integration | 🔴 Not started |

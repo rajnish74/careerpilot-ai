@@ -3,6 +3,9 @@ package com.rajnish.job.mapper;
 import com.rajnish.job.dto.response.UserResponse;
 import com.rajnish.job.entity.User;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class UserMapper {
 
     public static UserResponse toUserResponse(User user) {
@@ -19,5 +22,12 @@ public class UserMapper {
         userResponse.setCreatedAt(user.getCreatedAt());
         userResponse.setLastLogin(user.getLastLogin());
         return userResponse;
+    }
+
+    public static List<UserResponse> toListResponse(List<User> users) {
+
+        return users.stream()
+                .map(UserMapper::toUserResponse)
+                .collect(Collectors.toList());
     }
 }

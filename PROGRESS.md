@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-09-04**
+Last updated: **2026-09-20**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -48,6 +48,8 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Lock down `SecurityConfig` — currently `anyRequest().permitAll()`, needs route-level rules once JWT filter is in place
 - [ ] Role-based access (JOB_SEEKER / EMPLOYER / ADMIN) — roles are in the JWT claims but not yet enforced
 - [ ] Profile management (resume upload, skills, experience)
+- [x] User profile endpoints (`GET/PUT /api/users/profile`)
+- [x] Admin user-management endpoints (`GET /api/users`, `GET /{id}`, suspend/activate/delete)
 - [ ] Global exception handler (`@ControllerAdvice`) — auth still throws raw `Exception`
 
 ### Job Service (new module)
@@ -126,5 +128,16 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - No JWT validation filter yet — issued tokens aren't verified on subsequent requests.
   - `SecurityConfig` currently allows all requests — needs to require auth on protected routes once the JWT filter exists.
   - `UserResponse` still exposes `password` — remove it from the response DTO.
+
+### 2026-09-20
+- Added `UserController` (`/api/users`) — profile get/update, get by ID, list all users, suspend/activate/delete (admin actions).
+- Added `UserService`/`UserServiceImpl` — `getUserByEmail`, `getUserById`, `getAllUsers`, `updateProfile`, `suspendUser`, `activateUser`, `deleteUser`.
+- Added `UpdateUserRequest` payload (`fullName`, `phone`, `profileImage`) with partial-update support (only non-null fields applied).
+- Extended `UserMapper` with `toListResponse()` for bulk user responses.
+- **To fix next:**
+  - `UserResponse` still exposes `password` — remove it from the response DTO (still not fixed, 3rd time flagged).
+  - `getProfile`/`updateProfile` trust an `X-User-Email` header — spoofable until the JWT validation filter reads the email from the token instead.
+  - Admin routes (`suspend`, `activate`, `delete`, `getAllUsers`) have no role check yet — need `@PreAuthorize("hasRole('ADMIN')")` once role enforcement is wired.
+  - `getAllUsers()` has no pagination — will need `Pageable` before real data volume.
 
 <!-- Add new dated entries above this line as you make progress -->
