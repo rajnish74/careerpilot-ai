@@ -18,6 +18,14 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] `HomeController` created with a working `GET /` → returns `"Hello World"`
 - [x] `application.yaml` present in `job-portal-user-service`
 
+---
+
+## 🟡 In Progress
+
+- [ ] Fixing dependency issues in `job-portal-user-service/pom.xml`:
+  - `spring-boot-starter-webmvc` → should be `spring-boot-starter-web`
+  - `spring-boot-starter-data-jpa-test` / `spring-boot-starter-webmvc-test` → should be `spring-boot-starter-test`
+- [ ] Fixing `jib.maven.plugin` artifactId → should be `jib-maven-plugin` (in parent pom pluginManagement)
 
 ---
 
@@ -31,12 +39,16 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 ### User Service
 - [x] User entity + Postgres schema (`User`, `UserRole`, `UserStatus`)
 - [x] Signup endpoint (`POST /auth/signup`) with validation (`SignupRequest`)
-- [ ] Login endpoint (`POST /auth/login`) — currently returns `null`, not implemented
-- [ ] JWT generation & validation (currently returns a `"dummy jwt"` placeholder)
-- [ ] Password hashing (BCrypt) — passwords currently stored in plain text
-- [ ] Role-based access (JOB_SEEKER / EMPLOYER / ADMIN) — enum done, security not wired yet
+- [x] Login endpoint (`POST /auth/login`) with email/password authentication
+- [x] Password hashing (BCrypt via `PasswordEncoder`)
+- [x] JWT generation (`JwtProvider`) on signup & login
+- [x] `CustomUserDetailsService` for Spring Security authentication
+- [x] Basic `SecurityConfig` (stateless session, CSRF disabled)
+- [ ] JWT validation filter for protected routes (tokens are issued but not yet verified on incoming requests)
+- [ ] Lock down `SecurityConfig` — currently `anyRequest().permitAll()`, needs route-level rules once JWT filter is in place
+- [ ] Role-based access (JOB_SEEKER / EMPLOYER / ADMIN) — roles are in the JWT claims but not yet enforced
 - [ ] Profile management (resume upload, skills, experience)
-- [ ] Global exception handler (`@ControllerAdvice`) — signup currently throws raw `Exception`
+- [ ] Global exception handler (`@ControllerAdvice`) — auth still throws raw `Exception`
 
 ### Job Service (new module)
 - [ ] Job posting CRUD
@@ -101,5 +113,18 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - Added `AuthController` with `POST /auth/signup`.
 - `login()` stubbed out (returns `null`) — pending implementation.
 - **To fix next:** remove `password` from `UserResponse` (currently leaked in API response), hash passwords with BCrypt, replace `"dummy jwt"` with real JWT issuance, implement `login()`, add a global `@ControllerAdvice` for exceptions.
+
+### 2026-09-06
+- Added Spring Security: `SecurityConfig` (stateless sessions, CSRF disabled, temporary `permitAll()` on all routes).
+- Added `CustomUserDetailsService` implementing `UserDetailsService`, loading user by email with role as `GrantedAuthority`.
+- Added `JwtProvider` — generates JWT with `email`, `authorities`, and `userId` claims, 10-day expiry.
+- Wired `PasswordEncoder` (BCrypt) into `AuthServiceImpl` — passwords are now hashed on signup.
+- Implemented `AuthServiceImpl.login()` — authenticates via `CustomUserDetailsService` + `PasswordEncoder.matches()`, updates `lastLogin`, returns JWT.
+- Wired up `POST /auth/login` in `AuthController`.
+- **To fix next:**
+  - `JwtConstant.SECRET_KEY` is a short hardcoded string — move to config/env var and use a proper 256-bit+ secret.
+  - No JWT validation filter yet — issued tokens aren't verified on subsequent requests.
+  - `SecurityConfig` currently allows all requests — needs to require auth on protected routes once the JWT filter exists.
+  - `UserResponse` still exposes `password` — remove it from the response DTO.
 
 <!-- Add new dated entries above this line as you make progress -->

@@ -23,4 +23,9 @@ public class AuthController {
     public ResponseEntity<AuthResponse> signup(@RequestBody @Valid SignupRequest request) throws Exception {
         return ResponseEntity.ok(authService.signup(request));
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody @Valid LoginRequest request) throws Exception {
+        return ResponseEntity.ok(authService.login(request));
+    }
 }

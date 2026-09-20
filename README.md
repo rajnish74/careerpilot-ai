@@ -120,7 +120,7 @@ job-portal-system (parent pom)
 |---|---|---|
 | `job-portal-cloud` | Infra module (config server, Eureka, gateway) | 🔴 Not started |
 | `job-portal-common` | Shared DTOs, enums, exceptions | 🟡 Scaffolded |
-| `job-portal-user-service` | Auth, JWT, user profile | 🟡 In progress (signup done, login/JWT pending) |
+| `job-portal-user-service` | Auth, JWT, user profile | 🟡 In progress (signup + login + JWT done; validation filter pending) |
 | `job-service` | Job postings, search, filters | 🔴 Not started |
 | `application-service` | Job applications, tracking | 🔴 Not started |
 | `ai-service` | Gemini AI integration | 🔴 Not started |
@@ -166,7 +166,7 @@ npm run dev
 - [ ] Fix pom.xml dependency issues (`spring-boot-starter-web`, `spring-boot-starter-test`, `jib-maven-plugin`)
 - [ ] Set up `config-server` + `discovery-server` (Eureka) in `job-portal-cloud`
 - [ ] Set up `api-gateway` with routing to user-service
-- [ ] Implement JWT auth in `job-portal-user-service`
+- [x] Implement JWT auth in `job-portal-user-service`
 - [ ] Add PostgreSQL entities: User, Profile, Role
 - [ ] Build `job-service` (CRUD + search)
 - [ ] Build `application-service` + Kafka events
