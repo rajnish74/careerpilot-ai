@@ -9,12 +9,14 @@
         <outputRelativeToContentRoot value="true" />
         <module name="job-portal-user-service" />
         <module name="job-portal-common" />
+        <module name="job-portal-company-service" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="job-portal-common" options="-parameters" />
+      <module name="job-portal-company-service" options="-parameters" />
       <module name="job-portal-user-service" options="-parameters" />
     </option>
   </component>

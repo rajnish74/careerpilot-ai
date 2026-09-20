@@ -22,10 +22,9 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 
 ## 🟡 In Progress
 
-- [ ] Fixing dependency issues in `job-portal-user-service/pom.xml`:
-  - `spring-boot-starter-webmvc` → should be `spring-boot-starter-web`
-  - `spring-boot-starter-data-jpa-test` / `spring-boot-starter-webmvc-test` → should be `spring-boot-starter-test`
-- [ ] Fixing `jib.maven.plugin` artifactId → should be `jib-maven-plugin` (in parent pom pluginManagement)
+- [ ] JWT validation filter for protected routes in `job-portal-user-service`
+- [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
+- [ ] `job-portal-company-service` — DB connected & test controller verified, entity/endpoints pending
 
 ---
 
@@ -51,6 +50,17 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] User profile endpoints (`GET/PUT /api/users/profile`)
 - [x] Admin user-management endpoints (`GET /api/users`, `GET /{id}`, suspend/activate/delete)
 - [ ] Global exception handler (`@ControllerAdvice`) — auth still throws raw `Exception`
+
+### Company Service (new module — `job-portal-company-service`)
+- [x] Module scaffolded under `services`
+- [x] Database connection configured and verified
+- [x] Test controller created and confirmed working
+- [ ] `Company` entity + Postgres schema (name, description, logo, industry, size, location, etc.)
+- [ ] Company registration/creation endpoint (likely linked to `ROLE_EMPLOYER` user)
+- [ ] Company profile update endpoint
+- [ ] Company listing/search endpoint
+- [ ] Link company to owning user (employer) via `userId`/relation
+- [ ] Admin actions (verify/suspend company, if needed)
 
 ### Job Service (new module)
 - [ ] Job posting CRUD
@@ -139,5 +149,9 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `getProfile`/`updateProfile` trust an `X-User-Email` header — spoofable until the JWT validation filter reads the email from the token instead.
   - Admin routes (`suspend`, `activate`, `delete`, `getAllUsers`) have no role check yet — need `@PreAuthorize("hasRole('ADMIN')")` once role enforcement is wired.
   - `getAllUsers()` has no pagination — will need `Pageable` before real data volume.
+- Created new module `job-portal-company-service` under `services`.
+- Connected `job-portal-company-service` to its database.
+- Added a test controller in `job-portal-company-service` and verified it works.
+- **To fix next:** build out `Company` entity/schema, registration & profile endpoints, and link companies to their owning `ROLE_EMPLOYER` user.
 
 <!-- Add new dated entries above this line as you make progress -->

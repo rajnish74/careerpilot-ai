@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: job-portal-company-service
+
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/job-portal-company
+    username: rajnishkushwaha
+    password: Ranjit24
+    driver-class-name: org.postgresql.Driver
+
+    jpa:
+      hibernate:
+        ddl-auto: update
+      show-sql: true
+      properties:
+        hibernate:
+          format_sql: true
+
+server:
+  port: 5002
