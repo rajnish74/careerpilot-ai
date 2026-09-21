@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-09-20**
+Last updated: **2026-09-21**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -55,11 +55,16 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] Module scaffolded under `services`
 - [x] Database connection configured and verified
 - [x] Test controller created and confirmed working
-- [ ] `Company` entity + Postgres schema (name, description, logo, industry, size, location, etc.)
-- [ ] Company registration/creation endpoint (likely linked to `ROLE_EMPLOYER` user)
-- [ ] Company profile update endpoint
-- [ ] Company listing/search endpoint
-- [ ] Link company to owning user (employer) via `userId`/relation
+- [x] `Company` entity + Postgres schema (name, slug, description, size, type, industry, status, socialLinks, etc.)
+- [x] `CompanyRequest` / `CompanyResponse` DTOs with validation
+- [x] `CompanyRepository` with filter query and existence checks
+- [x] `CompanyService` interface defined (create, get, update, verify, delete, deactivate, list-mine)
+- [ ] `CompanyServiceImpl` — all methods currently stubbed (`return null` / `List.of()`), not implemented yet
+- [ ] `CompanyMapper` (entity ↔ DTO)
+- [ ] `CompanyController` — no REST endpoints exposed yet
+- [ ] Company registration/creation logic (likely linked to `ROLE_EMPLOYER` user via `ownerId`)
+- [ ] Company profile update logic
+- [ ] Company listing/search logic (filters already defined in repository)
 - [ ] Admin actions (verify/suspend company, if needed)
 
 ### Job Service (new module)
@@ -153,5 +158,17 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - Connected `job-portal-company-service` to its database.
 - Added a test controller in `job-portal-company-service` and verified it works.
 - **To fix next:** build out `Company` entity/schema, registration & profile endpoints, and link companies to their owning `ROLE_EMPLOYER` user.
+
+### 2026-09-21
+- Added `Company` entity (`name`, `slug`, `description`, `tagline`, `logoUrl`, `coverImageUrl`, `website`, `foundedYear`, `companySize`, `companyType`, `industryType`, `status`, `registrationNumber`, `ownerId`, `socialLinks`, `active`, timestamps).
+- Added `CompanySize`, `CompanyType`, `CompanyStatus`, `IndustryType`, `SocialPlatform` enums.
+- Added `SocialLink` `@Embeddable` + `SocialLinkResponse` DTO.
+- Added `CompanyRequest` (with bean validation) and `CompanyResponse` DTOs.
+- Added `CompanyRepository` with `findByOwnerId`, `existsByOwnerId`, `existsByName`, `existsBySlug`, `existsByRegistrationNumber` (typo currently), and a filtered `findByFilters` query.
+- Defined `CompanyService` interface (create, get by id, get/list mine, update, verify, delete, deactivate).
+- Scaffolded `CompanyServiceImpl` — all methods currently stubbed, no logic yet.
+- Fixed `existsBYRegistrationNumber` typo, `findByFilters` JPQL parameter/spacing bugs, `ownerId`/`getMyCompanies` design inconsistency, and added missing `phone`, `email`, `verifiedAt` fields to `Company` entity.
+- **To fix next:**
+  - Implement `CompanyServiceImpl` methods, add `CompanyMapper`, and add `CompanyController` with REST endpoints.
 
 <!-- Add new dated entries above this line as you make progress -->
