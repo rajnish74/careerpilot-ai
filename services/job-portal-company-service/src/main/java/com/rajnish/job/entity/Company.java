@@ -39,6 +39,8 @@ public class Company {
     private String coverImageUrl;
     private String website;
     private Integer foundedYear;
+    private String phone;
+    private String email;
 
     @Enumerated(EnumType.STRING)
     private CompanySize companySize;
@@ -62,6 +64,7 @@ public class Company {
     private List<SocialLink> socialLinks = new ArrayList<>();
 
     private Boolean active = true;
+    private LocalDateTime verifiedAt;
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp

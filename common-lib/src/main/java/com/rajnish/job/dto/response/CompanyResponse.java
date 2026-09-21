@@ -32,7 +32,7 @@ public class CompanyResponse {
     private CompanySize companySize;
     private CompanyType companyType;
     private IndustryType industryType;
-    private CompanyStatus companyStatus;
+    private CompanyStatus status;
     private Boolean active;
 
 
