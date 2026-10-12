@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-09-21**
+Last updated: **2026-10-12**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -59,13 +59,19 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] `CompanyRequest` / `CompanyResponse` DTOs with validation
 - [x] `CompanyRepository` with filter query and existence checks
 - [x] `CompanyService` interface defined (create, get, update, verify, delete, deactivate, list-mine)
-- [ ] `CompanyServiceImpl` — all methods currently stubbed (`return null` / `List.of()`), not implemented yet
-- [ ] `CompanyMapper` (entity ↔ DTO)
+- [x] `CompanyServiceImpl` implemented (create, get by id, get mine, filtered list, update, verify, delete, deactivate)
+- [x] `CompanyMapper` (entity → `CompanyResponse`, incl. social links)
+- [x] Company creation logic with duplicate checks (owner, name, registration number) and slug generation
+- [x] One-company-per-owner rule enforced on creation
+- [x] `phone` / `email` now persisted on `Company` and returned in the response
 - [ ] `CompanyController` — no REST endpoints exposed yet
-- [ ] Company registration/creation logic (likely linked to `ROLE_EMPLOYER` user via `ownerId`)
-- [ ] Company profile update logic
-- [ ] Company listing/search logic (filters already defined in repository)
-- [ ] Admin actions (verify/suspend company, if needed)
+- [ ] Fix `generateUniqueSlug()` logic (inverted `existsBySlug` check, whitespace regex)
+- [ ] Add ownership check (`assertOwner`) to `updateCompany()`
+- [ ] Set default `status` (`PENDING_VERIFICATION`) and `active = true` on company creation (`@Builder.Default`)
+- [ ] Map `verified` / `verifiedAt` in `CompanyMapper` and confirm entity fields match (`setVerified` is used in service)
+- [ ] Restrict `verifyCompany` / `deactivateCompany` to `ROLE_ADMIN`
+- [ ] Rename `getMyCompanies()` → `searchCompanies()` / `getAllCompanies()` (it returns filtered companies, not the owner's)
+- [ ] Replace raw `Exception` with custom exceptions + `@ControllerAdvice`
 
 ### Job Service (new module)
 - [ ] Job posting CRUD
@@ -167,8 +173,24 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - Added `CompanyRepository` with `findByOwnerId`, `existsByOwnerId`, `existsByName`, `existsBySlug`, `existsByRegistrationNumber` (typo currently), and a filtered `findByFilters` query.
 - Defined `CompanyService` interface (create, get by id, get/list mine, update, verify, delete, deactivate).
 - Scaffolded `CompanyServiceImpl` — all methods currently stubbed, no logic yet.
-- Fixed `existsBYRegistrationNumber` typo, `findByFilters` JPQL parameter/spacing bugs, `ownerId`/`getMyCompanies` design inconsistency, and added missing `phone`, `email`, `verifiedAt` fields to `Company` entity.
+- Fixed `existsBYRegistrationNumber` typo, `findByFilters` JPQL parameter/spacing bugs, and `ownerId`/`getMyCompanies` design inconsistency.
 - **To fix next:**
+  - `phone`/`email` exist in `CompanyRequest`/`CompanyResponse` but not on the `Company` entity yet — need to add these columns so they actually persist and round-trip in the response, not just sit in the request DTO.
   - Implement `CompanyServiceImpl` methods, add `CompanyMapper`, and add `CompanyController` with REST endpoints.
+
+### 2026-10-12
+- Implemented `CompanyServiceImpl`: `createCompany`, `getCompanyById`, `getMyCompany`, filtered company listing, `updateCompany`, `verifyCompany`, `deleteCompany` (owner-checked), `deactivateCompany`, `getCompanyEntityById`.
+- Added duplicate validation on create (one company per owner, unique name, unique registration number).
+- Added slug generation and social-link mapping helpers.
+- Added `CompanyMapper` (`toResponse`, `toSocialLinkResponse`).
+- Added `phone` and `email` to the `Company` entity; they are now saved on create/update and returned in the response.
+- Updated `CompanyService` interface signatures (`throws Exception`, `deleteCompany(companyId, ownerId)`).
+- **To fix next:**
+  - `generateUniqueSlug()`: the `existsBySlug(base)` check is inverted (returns `base` when it already exists), and `replaceAll("\\s-", "-")` should be `replaceAll("\\s+", "-")`.
+  - `updateCompany()` never calls `assertOwner()`, so any user could update any company.
+  - Builder ignores field initializers: set `status` (`PENDING_VERIFICATION`) explicitly and add `@Builder.Default` for `active` and `socialLinks` in `Company`.
+  - `setVerified(...)` is used in the service but `verified`/`verifiedAt` aren't mapped in `CompanyMapper`; also check `CompanyResponse` field naming (`companyStatus`) vs the mapper's `.status(...)`.
+  - Add `@PreAuthorize`/role checks for `verifyCompany` and `deactivateCompany`.
+  - Build `CompanyController` and wire owner id from the authenticated user (not a spoofable header).
 
 <!-- Add new dated entries above this line as you make progress -->

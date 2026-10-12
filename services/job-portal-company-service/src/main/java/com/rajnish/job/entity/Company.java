@@ -64,6 +64,7 @@ public class Company {
     private List<SocialLink> socialLinks = new ArrayList<>();
 
     private Boolean active = true;
+    private boolean isVerified = false;
     private LocalDateTime verifiedAt;
 
     @Column(nullable = false, updatable = false)
