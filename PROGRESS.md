@@ -24,7 +24,8 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 
 - [ ] JWT validation filter for protected routes in `job-portal-user-service`
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
-- [ ] `job-portal-company-service` — DB connected & test controller verified, entity/endpoints pending
+- [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
+- [ ] `job-portal-job-service` — module created, dependencies being set up
 
 ---
 
@@ -76,7 +77,12 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] Renamed `getMyCompanies()` → `getAllCompanies()` (filtered list of all companies)
 - [ ] Replace raw `Exception` with custom exceptions + `@ControllerAdvice`
 
-### Job Service (new module)
+### Job Service (new module — `job-portal-job-service`)
+- [x] Module created under `services`
+- [ ] Dependencies configured and downloaded (Web, JPA, PostgreSQL, Lombok, etc.)
+- [ ] Database connection configured and verified
+- [ ] Test controller verified
+- [ ] `Job` entity + schema (title, description, skills, salary, location, job type, status, company id)
 - [ ] Job posting CRUD
 - [ ] Search & filter (by location, skill, salary)
 - [ ] Recruiter dashboard endpoints
@@ -208,10 +214,12 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `DELETE /api/companies/{id}` — delete company (owner)
 - Added `ApiResponse` DTO (`message`, `status`).
 - Company service endpoints are now complete.
+- Created new module `job-portal-job-service` under `services` and started setting up / downloading its dependencies.
 - **To fix next:**
   - `updateCompany` and `deleteCompany` in the controller pass `(ownerId, id)` but the service expects `(companyId, ownerId)`, so the arguments are swapped.
   - `X-User-id` header is spoofable; read the user id from the validated JWT (or have the API Gateway inject it after validation).
   - `verify` / `deactivate` endpoints still have no admin-only check.
   - Earlier items still open: `generateUniqueSlug()` logic, `assertOwner()` in `updateCompany()`, `@Builder.Default` / default `status`, `verified`/`verifiedAt` mapping, global exception handler.
+  - Finish `job-portal-job-service` setup: confirm dependencies resolve, connect its database, and add a test controller.
 
 <!-- Add new dated entries above this line as you make progress -->
