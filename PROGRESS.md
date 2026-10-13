@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-10-12**
+Last updated: **2026-10-13**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -64,13 +64,16 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] Company creation logic with duplicate checks (owner, name, registration number) and slug generation
 - [x] One-company-per-owner rule enforced on creation
 - [x] `phone` / `email` now persisted on `Company` and returned in the response
-- [ ] `CompanyController` — no REST endpoints exposed yet
+- [x] `CompanyController` with REST endpoints (`/api/companies`): create, get by id, get my company, list/filter, update, verify, deactivate, delete
+- [x] `ApiResponse` DTO for simple success/failure messages
 - [ ] Fix `generateUniqueSlug()` logic (inverted `existsBySlug` check, whitespace regex)
 - [ ] Add ownership check (`assertOwner`) to `updateCompany()`
 - [ ] Set default `status` (`PENDING_VERIFICATION`) and `active = true` on company creation (`@Builder.Default`)
 - [ ] Map `verified` / `verifiedAt` in `CompanyMapper` and confirm entity fields match (`setVerified` is used in service)
-- [ ] Restrict `verifyCompany` / `deactivateCompany` to `ROLE_ADMIN`
-- [ ] Rename `getMyCompanies()` → `searchCompanies()` / `getAllCompanies()` (it returns filtered companies, not the owner's)
+- [ ] Restrict `verifyCompany` / `deactivateCompany` / verify & deactivate endpoints to `ROLE_ADMIN`
+- [ ] Fix swapped argument order in `CompanyController` (`updateCompany`, `deleteCompany` pass `ownerId` and `id` the wrong way round)
+- [ ] Replace `X-User-id` header with the authenticated user's id from JWT / API Gateway
+- [x] Renamed `getMyCompanies()` → `getAllCompanies()` (filtered list of all companies)
 - [ ] Replace raw `Exception` with custom exceptions + `@ControllerAdvice`
 
 ### Job Service (new module)
@@ -192,5 +195,23 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `setVerified(...)` is used in the service but `verified`/`verifiedAt` aren't mapped in `CompanyMapper`; also check `CompanyResponse` field naming (`companyStatus`) vs the mapper's `.status(...)`.
   - Add `@PreAuthorize`/role checks for `verifyCompany` and `deactivateCompany`.
   - Build `CompanyController` and wire owner id from the authenticated user (not a spoofable header).
+
+### 2026-10-13
+- Added `CompanyController` (`/api/companies`) with all endpoints:
+  - `POST /api/companies` — create company
+  - `GET /api/companies/{id}` — get company by id
+  - `GET /api/companies/my` — get the owner's company
+  - `GET /api/companies` — list companies with optional `companyType`, `status`, `industryType` filters
+  - `PUT /api/companies/{id}` — update company
+  - `PATCH /api/companies/{id}/verify` — verify company (admin)
+  - `PATCH /api/companies/{id}/deactivate` — deactivate company (admin)
+  - `DELETE /api/companies/{id}` — delete company (owner)
+- Added `ApiResponse` DTO (`message`, `status`).
+- Company service endpoints are now complete.
+- **To fix next:**
+  - `updateCompany` and `deleteCompany` in the controller pass `(ownerId, id)` but the service expects `(companyId, ownerId)`, so the arguments are swapped.
+  - `X-User-id` header is spoofable; read the user id from the validated JWT (or have the API Gateway inject it after validation).
+  - `verify` / `deactivate` endpoints still have no admin-only check.
+  - Earlier items still open: `generateUniqueSlug()` logic, `assertOwner()` in `updateCompany()`, `@Builder.Default` / default `status`, `verified`/`verifiedAt` mapping, global exception handler.
 
 <!-- Add new dated entries above this line as you make progress -->

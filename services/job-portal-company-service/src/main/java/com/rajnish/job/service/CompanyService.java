@@ -14,7 +14,7 @@ public interface CompanyService {
     CompanyResponse createCompany(Long ownerId, CompanyRequest request) throws Exception;
     CompanyResponse getCompanyById(Long id) throws Exception;
     CompanyResponse getMyCompany(Long ownerId) throws Exception;
-    List<CompanyResponse> getMyCompanies(CompanyType companyType,
+    List<CompanyResponse> getAllCompanies(CompanyType companyType,
                                          IndustryType industryType,
                                          CompanyStatus companyStatus);
 

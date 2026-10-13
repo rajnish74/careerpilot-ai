@@ -108,7 +108,7 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    public List<CompanyResponse> getMyCompanies(CompanyType companyType,
+    public List<CompanyResponse> getAllCompanies(CompanyType companyType,
                                                 IndustryType industryType, CompanyStatus companyStatus) {
 
         return companyRepository.findByFilters(companyType, industryType, companyStatus)
