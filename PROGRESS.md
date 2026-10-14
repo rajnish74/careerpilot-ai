@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-10-13**
+Last updated: **2026-10-14**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -25,7 +25,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] JWT validation filter for protected routes in `job-portal-user-service`
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
-- [ ] `job-portal-job-service` — module created, dependencies being set up
+- [ ] `job-portal-job-service` — CRUD, search and endpoints built; company integration, category/skills/tags and security pending
 
 ---
 
@@ -79,12 +79,24 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 
 ### Job Service (new module — `job-portal-job-service`)
 - [x] Module created under `services`
-- [ ] Dependencies configured and downloaded (Web, JPA, PostgreSQL, Lombok, etc.)
-- [ ] Database connection configured and verified
-- [ ] Test controller verified
-- [ ] `Job` entity + schema (title, description, skills, salary, location, job type, status, company id)
-- [ ] Job posting CRUD
-- [ ] Search & filter (by location, skill, salary)
+- [x] Dependencies configured and downloaded
+- [x] `Job` entity (title, description, requirements, responsibilities, benefits, companyId, employerId, location, salary range, job type, work mode, experience level, status, openings, deadlines, timestamps)
+- [x] Embeddables: `JobLocation`, `SalaryRange`
+- [x] Enums: `JobStatus`, `JobType`, `WorkMode`, `ExperienceLevel`
+- [x] `JobRequest` / `JobResponse` / `JobSearchRequest` DTOs
+- [x] `JobRepository` (+ `JpaSpecificationExecutor`) and `JobSpecification` for dynamic filters
+- [x] `JobService` / `JobServiceImpl`: create, get by id, search, get by company, update, publish, close, delete, admin list
+- [x] `JobMapper` (entity → `JobResponse`)
+- [x] `JobController` (`/api/jobs`): create, get by id, search, by company, admin list, update, publish, close, delete
+- [ ] Set default `status = DRAFT`, `openings = 1`, `active = true` on creation (`@Builder.Default`) — currently null via builder
+- [ ] Resolve real `companyId` (currently hardcoded `1L`) and fetch `CompanyResponse` from company-service (OpenFeign + Resilience4j) instead of an empty object
+- [ ] Fix `JobSpecification`: `categoryId` filter references a field that doesn't exist on `Job`; `keyword`, `skillIds`, `tagIds` filters not implemented; lowercase the `location` search pattern
+- [ ] Category / skills / tags support (currently commented out in the entity; `JobRequest` accepts them but they are ignored)
+- [ ] Validation fixes: `requirements` is `nullable=false` but not validated in `JobRequest`; `@NotNull` message on `categoryId` says "Company ID"; use `TEXT` columns for long descriptions
+- [ ] Remove `REMOTE` from `JobType` (duplicates `WorkMode.REMOTE`)
+- [ ] Pagination for `getJobs` / `getAllJobsAdmin`
+- [ ] Admin-only access for `/api/jobs/admin`; employer role check on create
+- [ ] Replace `X-User-Id` header with JWT / gateway-provided user id
 - [ ] Recruiter dashboard endpoints
 
 ### Application Service (new module)
@@ -221,5 +233,21 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `verify` / `deactivate` endpoints still have no admin-only check.
   - Earlier items still open: `generateUniqueSlug()` logic, `assertOwner()` in `updateCompany()`, `@Builder.Default` / default `status`, `verified`/`verifiedAt` mapping, global exception handler.
   - Finish `job-portal-job-service` setup: confirm dependencies resolve, connect its database, and add a test controller.
+
+### 2026-10-14
+- Built out `job-portal-job-service`:
+  - `Job` entity with `JobLocation` and `SalaryRange` embeddables.
+  - `JobStatus`, `JobType`, `WorkMode`, `ExperienceLevel` enums.
+  - `JobRequest`, `JobResponse`, `JobSearchRequest` DTOs.
+  - `JobRepository` with `JpaSpecificationExecutor` and `JobSpecification` (filters: job type, work mode, experience level, company, location, salary range, openings; defaults to active + `OPEN` jobs).
+  - `JobServiceImpl`: create, get by id, search, get by company, update (employer-checked), publish, close, delete (employer-checked), admin list.
+  - `JobMapper` and `JobController` (`/api/jobs`) with all endpoints, including `/company/{companyId}` and `/admin`.
+- **To fix next:**
+  - `Job` builder ignores field initializers, so `status` is null on create and the insert will fail (`status` is `nullable=false`). Add `@Builder.Default` or set `.status(JobStatus.DRAFT)` explicitly (same for `openings` and `active`).
+  - `companyId` is hardcoded to `1L` and `CompanyResponse` is always empty; call company-service to resolve the employer's company and its details.
+  - `JobSpecification` filters on `categoryId`, which doesn't exist on `Job`; this throws at runtime when the param is sent. `keyword`, `skillIds`, `tagIds` aren't implemented, and the `location` pattern isn't lowercased.
+  - `requirements` is `nullable=false` but not validated in `JobRequest`; descriptions need a `TEXT` column.
+  - `JobType` contains `REMOTE`, which duplicates `WorkMode.REMOTE`.
+  - `X-User-Id` is spoofable, `/api/jobs/admin` has no admin check, and listings have no pagination.
 
 <!-- Add new dated entries above this line as you make progress -->
