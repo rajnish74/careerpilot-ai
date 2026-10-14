@@ -18,7 +18,7 @@ import java.util.List;
 @Table(name = "job_categories")
 public class JobCategory {
 
-    @id
+    @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 

@@ -25,7 +25,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] JWT validation filter for protected routes in `job-portal-user-service`
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
-- [ ] `job-portal-job-service` — CRUD, search, categories and endpoints built; company integration, job-category link, skills/tags and security pending
+- [ ] `job-portal-job-service` — CRUD, search, categories, skills and endpoints built; company integration, job/category/skills linking, tags and security pending
 
 ---
 
@@ -100,7 +100,17 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Fix self-parent error message in `updateJobCategory` and add a check against deeper parent cycles
 - [ ] Admin-only access for category create/update/delete
 - [ ] Link category to `Job` (add `category` / `categoryId` on the entity so `JobRequest.categoryId` and the `categoryId` search filter work)
-- [ ] Skills / tags support (commented out in the entity; `JobRequest` accepts them but they are ignored)
+- [x] `JobSkill` entity (name, slug, category, active, timestamps) and `SkillCategory` enum
+- [x] `JobSkillRequest` / `JobSkillResponse` DTOs, `JobSkillMapper`
+- [x] `JobSkillRepository`, `JobSkillService` / `JobSkillServiceImpl` (create, list active, get by id, update, soft delete, `getSkillByIds`)
+- [x] `JobSkillController` (`/api/job-skills`): create, list, get by id, update, delete
+- [ ] Fix `JobSkill` entity: `@id` → `@Id`; add `@Builder.Default` for `active = true` (currently null on builder, so `findByActiveTrue()` returns nothing); add `@Enumerated(EnumType.STRING)` on `category` (stored as ordinal right now)
+- [ ] Fix `generateUniqueSlug()` in `JobSkillServiceImpl`: `existsBySlug(base)` check is inverted
+- [ ] Make skill name uniqueness case-insensitive (`existsByNameIgnoreCase`) so "Java" and "java" can't both exist
+- [ ] `getSkillByIds()`: handle null ids, ignore inactive skills, and fail when some ids aren't found
+- [ ] Admin-only access for skill create/update/delete
+- [ ] Link skills to `Job` (many-to-many using `JobRequest.skillIds`, then use `skillIds` in `JobSpecification`)
+- [ ] Tags support (commented out in the entity; `JobRequest` accepts `tagIds` but ignores them)
 - [ ] Validation fixes: `requirements` is `nullable=false` but not validated in `JobRequest`; `@NotNull` message on `categoryId` says "Company ID"; use `TEXT` columns for long descriptions
 - [ ] Remove `REMOTE` from `JobType` (duplicates `WorkMode.REMOTE`)
 - [ ] Pagination for `getJobs` / `getAllJobsAdmin`
@@ -257,6 +267,12 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `JobCategoryRepository` (`existsByName`, `existsBySlug`, `findByActiveTrue`).
   - `JobCategoryServiceImpl`: create (with optional parent and unique slug), list active, get by id, update, soft delete (`active = false`).
   - `JobCategoryController` (`/api/job-categories`) with create, list, get, update, delete.
+- Added job skills to `job-portal-job-service`:
+  - `SkillCategory` enum and `JobSkill` entity.
+  - `JobSkillRequest`, `JobSkillResponse`, `JobSkillMapper`.
+  - `JobSkillRepository` (`findByActiveTrue`, `existsByName`, `existsBySlug`).
+  - `JobSkillServiceImpl`: create (with unique slug), list active, get by id, update, soft delete, `getSkillByIds` (for linking to jobs).
+  - `JobSkillController` (`/api/job-skills`) with create, list, get, update, delete.
 - **To fix next:**
   - `Job` builder ignores field initializers, so `status` is null on create and the insert will fail (`status` is `nullable=false`). Add `@Builder.Default` or set `.status(JobStatus.DRAFT)` explicitly (same for `openings` and `active`).
   - `companyId` is hardcoded to `1L` and `CompanyResponse` is always empty; call company-service to resolve the employer's company and its details.
@@ -266,5 +282,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `X-User-Id` is spoofable, `/api/jobs/admin` has no admin check, and listings have no pagination.
   - Job categories: `@id` should be `@Id` (compile error); `active` and `subcategories` need `@Builder.Default` (otherwise create throws NPE in the mapper and `findByActiveTrue()` returns nothing); `generateUniqueSlug()` has the inverted `existsBySlug` check; no admin check on category endpoints.
   - `Job` isn't linked to `JobCategory` yet, so the `categoryId` filter and `JobRequest.categoryId` still do nothing.
+  - Job skills: `@id` should be `@Id` (compile error); `active` needs `@Builder.Default` (otherwise `findByActiveTrue()` returns nothing); `category` needs `@Enumerated(EnumType.STRING)`; `generateUniqueSlug()` has the inverted `existsBySlug` check; name check is case-sensitive; no admin check on skill endpoints.
+  - `Job` isn't linked to skills yet, so `JobRequest.skillIds` and the `skillIds` filter still do nothing.
 
 <!-- Add new dated entries above this line as you make progress -->
