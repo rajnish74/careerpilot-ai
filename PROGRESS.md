@@ -25,7 +25,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] JWT validation filter for protected routes in `job-portal-user-service`
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
-- [ ] `job-portal-job-service` — CRUD, search and endpoints built; company integration, category/skills/tags and security pending
+- [ ] `job-portal-job-service` — CRUD, search, categories and endpoints built; company integration, job-category link, skills/tags and security pending
 
 ---
 
@@ -91,7 +91,16 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Set default `status = DRAFT`, `openings = 1`, `active = true` on creation (`@Builder.Default`) — currently null via builder
 - [ ] Resolve real `companyId` (currently hardcoded `1L`) and fetch `CompanyResponse` from company-service (OpenFeign + Resilience4j) instead of an empty object
 - [ ] Fix `JobSpecification`: `categoryId` filter references a field that doesn't exist on `Job`; `keyword`, `skillIds`, `tagIds` filters not implemented; lowercase the `location` search pattern
-- [ ] Category / skills / tags support (currently commented out in the entity; `JobRequest` accepts them but they are ignored)
+- [x] `JobCategory` entity (name, slug, description, icon, parent/subcategories, active, timestamps)
+- [x] `JobCategoryRequest` / `JobCategoryResponse` DTOs, `JobCategoryMapper`
+- [x] `JobCategoryRepository`, `JobCategoryService` / `JobCategoryServiceImpl` (create, list active, get by id, update, soft delete)
+- [x] `JobCategoryController` (`/api/job-categories`): create, list, get by id, update, delete
+- [ ] Fix `JobCategory` entity: `@id` → `@Id`; add `@Builder.Default` for `active = true` and `subcategories` (currently null on builder, so create response throws NPE and `findByActiveTrue()` returns nothing)
+- [ ] Fix `generateUniqueSlug()` in `JobCategoryServiceImpl`: `existsBySlug(base)` check is inverted (same bug as company service)
+- [ ] Fix self-parent error message in `updateJobCategory` and add a check against deeper parent cycles
+- [ ] Admin-only access for category create/update/delete
+- [ ] Link category to `Job` (add `category` / `categoryId` on the entity so `JobRequest.categoryId` and the `categoryId` search filter work)
+- [ ] Skills / tags support (commented out in the entity; `JobRequest` accepts them but they are ignored)
 - [ ] Validation fixes: `requirements` is `nullable=false` but not validated in `JobRequest`; `@NotNull` message on `categoryId` says "Company ID"; use `TEXT` columns for long descriptions
 - [ ] Remove `REMOTE` from `JobType` (duplicates `WorkMode.REMOTE`)
 - [ ] Pagination for `getJobs` / `getAllJobsAdmin`
@@ -242,6 +251,12 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `JobRepository` with `JpaSpecificationExecutor` and `JobSpecification` (filters: job type, work mode, experience level, company, location, salary range, openings; defaults to active + `OPEN` jobs).
   - `JobServiceImpl`: create, get by id, search, get by company, update (employer-checked), publish, close, delete (employer-checked), admin list.
   - `JobMapper` and `JobController` (`/api/jobs`) with all endpoints, including `/company/{companyId}` and `/admin`.
+- Added job categories to `job-portal-job-service`:
+  - `JobCategory` entity with self-referencing parent/subcategories.
+  - `JobCategoryRequest`, `JobCategoryResponse`, `JobCategoryMapper`.
+  - `JobCategoryRepository` (`existsByName`, `existsBySlug`, `findByActiveTrue`).
+  - `JobCategoryServiceImpl`: create (with optional parent and unique slug), list active, get by id, update, soft delete (`active = false`).
+  - `JobCategoryController` (`/api/job-categories`) with create, list, get, update, delete.
 - **To fix next:**
   - `Job` builder ignores field initializers, so `status` is null on create and the insert will fail (`status` is `nullable=false`). Add `@Builder.Default` or set `.status(JobStatus.DRAFT)` explicitly (same for `openings` and `active`).
   - `companyId` is hardcoded to `1L` and `CompanyResponse` is always empty; call company-service to resolve the employer's company and its details.
@@ -249,5 +264,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `requirements` is `nullable=false` but not validated in `JobRequest`; descriptions need a `TEXT` column.
   - `JobType` contains `REMOTE`, which duplicates `WorkMode.REMOTE`.
   - `X-User-Id` is spoofable, `/api/jobs/admin` has no admin check, and listings have no pagination.
+  - Job categories: `@id` should be `@Id` (compile error); `active` and `subcategories` need `@Builder.Default` (otherwise create throws NPE in the mapper and `findByActiveTrue()` returns nothing); `generateUniqueSlug()` has the inverted `existsBySlug` check; no admin check on category endpoints.
+  - `Job` isn't linked to `JobCategory` yet, so the `categoryId` filter and `JobRequest.categoryId` still do nothing.
 
 <!-- Add new dated entries above this line as you make progress -->

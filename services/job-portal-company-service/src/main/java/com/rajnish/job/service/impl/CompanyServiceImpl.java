@@ -79,7 +79,7 @@ public class CompanyServiceImpl implements CompanyService {
         String base = name.toLowerCase()
                 .replaceAll("[^a-zA-Z0-9\\s-]", "")
                 .trim()
-                .replaceAll("\\s-", "-");
+                .replaceAll("[\\s-]", "-");
 
         if(companyRepository.existsBySlug(base)) {
             return base;
