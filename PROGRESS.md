@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-10-14**
+Last updated: **2026-10-15**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -25,7 +25,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] JWT validation filter for protected routes in `job-portal-user-service`
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
-- [ ] `job-portal-job-service` — CRUD, search, categories, skills and endpoints built; company integration, job/category/skills linking, tags and security pending
+- [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and endpoints built; company integration, linking jobs to categories/skills/tags and security pending
 
 ---
 
@@ -110,7 +110,15 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `getSkillByIds()`: handle null ids, ignore inactive skills, and fail when some ids aren't found
 - [ ] Admin-only access for skill create/update/delete
 - [ ] Link skills to `Job` (many-to-many using `JobRequest.skillIds`, then use `skillIds` in `JobSpecification`)
-- [ ] Tags support (commented out in the entity; `JobRequest` accepts `tagIds` but ignores them)
+- [x] `JobTag` entity (name, slug, createdAt), `JobTagRequest` / `JobTagResponse` DTOs, `JobTagMapper`
+- [x] `JobTagRepository`, `JobTagService` / `JobTagServiceImpl` (create, list, get by id, update, delete)
+- [x] `JobTagController` (`/api/job-tags`): create, list, get by id, update, delete
+- [ ] Fix `generateUniqueSlug()` in `JobTagServiceImpl`: `existsBySlug(base)` check is inverted
+- [ ] Make tag name uniqueness case-insensitive (`existsByNameIgnoreCase`)
+- [ ] Decide delete strategy for tags (hard delete will break once tags are linked to jobs; consider an `active` flag like categories/skills)
+- [ ] Admin-only access for tag create/update/delete
+- [ ] Link tags to `Job` (many-to-many using `JobRequest.tagIds`, then use `tagIds` in `JobSpecification`)
+- [ ] Extract a shared `SlugUtil` (same slug logic is duplicated in company, category, skill and tag services)
 - [ ] Validation fixes: `requirements` is `nullable=false` but not validated in `JobRequest`; `@NotNull` message on `categoryId` says "Company ID"; use `TEXT` columns for long descriptions
 - [ ] Remove `REMOTE` from `JobType` (duplicates `WorkMode.REMOTE`)
 - [ ] Pagination for `getJobs` / `getAllJobsAdmin`
@@ -284,5 +292,18 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `Job` isn't linked to `JobCategory` yet, so the `categoryId` filter and `JobRequest.categoryId` still do nothing.
   - Job skills: `@id` should be `@Id` (compile error); `active` needs `@Builder.Default` (otherwise `findByActiveTrue()` returns nothing); `category` needs `@Enumerated(EnumType.STRING)`; `generateUniqueSlug()` has the inverted `existsBySlug` check; name check is case-sensitive; no admin check on skill endpoints.
   - `Job` isn't linked to skills yet, so `JobRequest.skillIds` and the `skillIds` filter still do nothing.
+
+### 2026-10-15
+- Added job tags to `job-portal-job-service`:
+  - `JobTag` entity (`name`, `slug`, `createdAt`).
+  - `JobTagRequest`, `JobTagResponse`, `JobTagMapper`.
+  - `JobTagRepository` (`existsByName`, `existsBySlug`).
+  - `JobTagServiceImpl`: create (with unique slug), list, get by id, update, delete, `getTagEntityById`.
+  - `JobTagController` (`/api/job-tags`) with create, list, get, update, delete.
+- **To fix next:**
+  - `generateUniqueSlug()` in `JobTagServiceImpl` has the inverted `existsBySlug` check (same bug as company, category and skill services); move the slug logic into a shared `SlugUtil`.
+  - Tag name check is case-sensitive; tags are hard-deleted, which will conflict with job links later.
+  - Tag endpoints have no admin check.
+  - `Job` isn't linked to categories, skills or tags yet, so `categoryId`, `skillIds` and `tagIds` in `JobRequest` / `JobSearchRequest` still do nothing. Next step: add the relations to `Job` and update `JobServiceImpl`, `JobMapper`, `JobResponse` and `JobSpecification`.
 
 <!-- Add new dated entries above this line as you make progress -->
