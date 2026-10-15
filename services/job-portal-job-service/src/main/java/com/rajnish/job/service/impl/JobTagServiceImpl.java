@@ -9,7 +9,9 @@ import com.rajnish.job.service.JobTagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,6 +69,12 @@ public class JobTagServiceImpl implements JobTagService {
     public JobTag getTagEntityById(Long id) throws Exception {
         return jobTagRepository.findById(id)
                 .orElseThrow(()->new Exception("job tag not found"));
+    }
+
+    @Override
+    public Set<JobTag> getTagsByIds(Set<Long> ids) throws Exception {
+        List<JobTag> jobTags = jobTagRepository.findAllById(ids);
+        return new HashSet<>(jobTags);
     }
 
     private String generateUniqueSlug(String name) {

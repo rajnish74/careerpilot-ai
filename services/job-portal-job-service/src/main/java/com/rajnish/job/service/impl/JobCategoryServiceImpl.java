@@ -36,6 +36,7 @@ public class JobCategoryServiceImpl implements JobCategoryService {
                 .description(request.getDescription())
                 .iconUrl(request.getIconUrl())
                 .parent(parent)
+                .active(true)
                 .build();
 
         JobCategory saved = jobCategoryRepository.save(category);

@@ -4,6 +4,9 @@ import com.rajnish.job.dto.request.JobRequest;
 import com.rajnish.job.dto.response.CompanyResponse;
 import com.rajnish.job.dto.response.JobResponse;
 import com.rajnish.job.entity.Job;
+import com.rajnish.job.entity.JobCategory;
+import com.rajnish.job.entity.JobSkill;
+import com.rajnish.job.entity.JobTag;
 import com.rajnish.job.entity.embaddable.JobLocation;
 import com.rajnish.job.entity.embaddable.SalaryRange;
 import com.rajnish.job.enums.JobStatus;
@@ -11,22 +14,41 @@ import com.rajnish.job.mapper.JobMapper;
 import com.rajnish.job.payload.JobSearchRequest;
 import com.rajnish.job.repository.JobRepository;
 import com.rajnish.job.repository.JobSpecification;
+import com.rajnish.job.service.JobCategoryService;
 import com.rajnish.job.service.JobService;
+import com.rajnish.job.service.JobSkillService;
+import com.rajnish.job.service.JobTagService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class JobServiceImpl implements JobService {
 
     private final JobRepository jobRepository;
+    private final JobCategoryService categoryService;
+    private final JobSkillService skillService;
+    private final JobTagService tagService;
 
     @Override
-    public JobResponse createJob(Long employerId, JobRequest request) {
+    public JobResponse createJob(Long employerId, JobRequest request) throws Exception {
+
+        JobCategory category = categoryService.getCategoryEntityById(request.getCategoryId());
+
+        Set<JobSkill> skills = request.getSkillIds() != null ?
+                skillService.getSkillByIds(request.getSkillIds()) : Collections.emptySet();
+
+        Set<JobTag> tags = request.getTagIds() != null ?
+                tagService.getTagsByIds(request.getTagIds()) : Collections.emptySet();
+
         Long companyId = 1L;
 
         Job job = Job.builder()
@@ -37,6 +59,9 @@ public class JobServiceImpl implements JobService {
                 .benefits(request.getBenefits())
                 .companyId(companyId)
                 .employerId(employerId)
+                .category(category)
+                .skills(skills)
+                .tags(tags)
                 .location(buildLocation(request))
                 .salaryRange(buildSalaryRange(request))
                 .jobType(request.getJobType())
@@ -45,6 +70,8 @@ public class JobServiceImpl implements JobService {
                 .openings(request.getOpenings() != null ? request.getOpenings() : 1)
                 .applicationDeadline(request.getApplicationDeadline())
                 .expiresAt(request.getExpiresAt())
+                .active(true)
+                .status(JobStatus.DRAFT)
                 .build();
 
         Job savedJob = jobRepository.save(job);
@@ -105,11 +132,22 @@ public class JobServiceImpl implements JobService {
                 ()-> new Exception("Job not found"));
         assertEmployer(job, employerId);
 
+        JobCategory category = categoryService.getCategoryEntityById(request.getCategoryId());
+
+        Set<JobSkill> skills = request.getSkillIds() != null ?
+                skillService.getSkillByIds(request.getSkillIds()) : Collections.emptySet();
+
+        Set<JobTag> tags = request.getTagIds() != null ?
+                tagService.getTagsByIds(request.getTagIds()) : Collections.emptySet();
+
         job.setTitle(request.getTitle());
         job.setDescription(request.getDescription());
         job.setRequirements(request.getRequirements());
         job.setResponsibilities(request.getResponsibilities());
         job.setBenefits(request.getBenefits());
+        job.setCategory(category);
+        job.setSkills(skills);
+        job.setTags(tags);
         job.setWorkMode(request.getWorkMode());
         job.setExperienceLevel(request.getExperienceLevel());
         job.setOpenings(request.getOpenings() != null ? request.getOpenings() : job.getOpenings());

@@ -2,15 +2,33 @@ package com.rajnish.job.mapper;
 
 import com.rajnish.job.dto.response.CompanyResponse;
 import com.rajnish.job.dto.response.JobResponse;
+import com.rajnish.job.dto.response.JobSkillResponse;
+import com.rajnish.job.dto.response.JobTagResponse;
 import com.rajnish.job.entity.Job;
 import com.rajnish.job.entity.embaddable.JobLocation;
 import com.rajnish.job.entity.embaddable.SalaryRange;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JobMapper {
     public static JobResponse toResponse(Job job, CompanyResponse companyResponse) {
 
         JobLocation loc = job.getLocation();
         SalaryRange sal = job.getSalaryRange();
+
+        Set<JobSkillResponse> skills = job.getSkills() == null ?
+                Collections.emptySet() : job.getSkills().stream()
+                .map(JobSkillMapper::toJobSkillResponse)
+                .collect(Collectors.toSet());
+
+        Set<JobTagResponse> tags = job.getTags() == null ?
+                Collections.emptySet() : job.getTags().stream()
+                .map(JobTagMapper::toTagResponse)
+                .collect(Collectors.toSet());
+
         return  JobResponse.builder()
                 .id(job.getId())
                 .title(job.getTitle())
@@ -18,7 +36,10 @@ public class JobMapper {
                 .requirements(job.getRequirements())
                 .responsibilities(job.getResponsibilities())
                 .benefits(job.getBenefits())
-                .companyResponse(companyResponse)
+                .company(companyResponse)
+                .category(JobCategoryMapper.toJobCategoryResponse(job.getCategory(), false))
+                .skills(skills)
+                .tags(tags)
 
                 .address(loc != null ? loc.getAddress() : null)
                 .city(loc != null ? loc.getCity() : null)

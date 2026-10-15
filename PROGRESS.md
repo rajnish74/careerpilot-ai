@@ -25,7 +25,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] JWT validation filter for protected routes in `job-portal-user-service`
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
-- [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and endpoints built; company integration, linking jobs to categories/skills/tags and security pending
+- [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
 
 ---
 
@@ -88,28 +88,30 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] `JobService` / `JobServiceImpl`: create, get by id, search, get by company, update, publish, close, delete, admin list
 - [x] `JobMapper` (entity → `JobResponse`)
 - [x] `JobController` (`/api/jobs`): create, get by id, search, by company, admin list, update, publish, close, delete
-- [ ] Set default `status = DRAFT`, `openings = 1`, `active = true` on creation (`@Builder.Default`) — currently null via builder
+- [x] Default `status = DRAFT`, `openings = 1`, `active = true` now set explicitly on job creation
+- [ ] Add `@Builder.Default` to `Job` entity initializers (Lombok still warns that the builder ignores them; the service sets them manually as a workaround)
 - [ ] Resolve real `companyId` (currently hardcoded `1L`) and fetch `CompanyResponse` from company-service (OpenFeign + Resilience4j) instead of an empty object
-- [ ] Fix `JobSpecification`: `categoryId` filter references a field that doesn't exist on `Job`; `keyword`, `skillIds`, `tagIds` filters not implemented; lowercase the `location` search pattern
+- [ ] Update `JobSpecification` now that `Job` has relations: filter on `category.id` instead of `categoryId`, implement `skillIds`, `tagIds` and `keyword` filters, and lowercase the `location` search pattern
 - [x] `JobCategory` entity (name, slug, description, icon, parent/subcategories, active, timestamps)
 - [x] `JobCategoryRequest` / `JobCategoryResponse` DTOs, `JobCategoryMapper`
 - [x] `JobCategoryRepository`, `JobCategoryService` / `JobCategoryServiceImpl` (create, list active, get by id, update, soft delete)
 - [x] `JobCategoryController` (`/api/job-categories`): create, list, get by id, update, delete
-- [ ] Fix `JobCategory` entity: `@id` → `@Id`; add `@Builder.Default` for `active = true` and `subcategories` (currently null on builder, so create response throws NPE and `findByActiveTrue()` returns nothing)
+- [x] Fixed `JobCategory` issues: `@Id`, `active` now set to `true` on create, and the mapper null-checks `subcategories` (no more NPE on create response)
 - [ ] Fix `generateUniqueSlug()` in `JobCategoryServiceImpl`: `existsBySlug(base)` check is inverted (same bug as company service)
 - [ ] Fix self-parent error message in `updateJobCategory` and add a check against deeper parent cycles
 - [ ] Admin-only access for category create/update/delete
-- [ ] Link category to `Job` (add `category` / `categoryId` on the entity so `JobRequest.categoryId` and the `categoryId` search filter work)
+- [x] Linked category to `Job` (`@ManyToOne JobCategory`); `JobRequest.categoryId` is now used on create/update and returned in `JobResponse`
 - [x] `JobSkill` entity (name, slug, category, active, timestamps) and `SkillCategory` enum
 - [x] `JobSkillRequest` / `JobSkillResponse` DTOs, `JobSkillMapper`
 - [x] `JobSkillRepository`, `JobSkillService` / `JobSkillServiceImpl` (create, list active, get by id, update, soft delete, `getSkillByIds`)
 - [x] `JobSkillController` (`/api/job-skills`): create, list, get by id, update, delete
-- [ ] Fix `JobSkill` entity: `@id` → `@Id`; add `@Builder.Default` for `active = true` (currently null on builder, so `findByActiveTrue()` returns nothing); add `@Enumerated(EnumType.STRING)` on `category` (stored as ordinal right now)
+- [x] Fixed `JobSkill` issues: `@Id` and `active` now set to `true` on create
+- [ ] Confirm `@Enumerated(EnumType.STRING)` is on `JobSkill.category` (otherwise it is stored as an ordinal)
 - [ ] Fix `generateUniqueSlug()` in `JobSkillServiceImpl`: `existsBySlug(base)` check is inverted
 - [ ] Make skill name uniqueness case-insensitive (`existsByNameIgnoreCase`) so "Java" and "java" can't both exist
 - [ ] `getSkillByIds()`: handle null ids, ignore inactive skills, and fail when some ids aren't found
 - [ ] Admin-only access for skill create/update/delete
-- [ ] Link skills to `Job` (many-to-many using `JobRequest.skillIds`, then use `skillIds` in `JobSpecification`)
+- [x] Linked skills to `Job` (`@ManyToMany Set<JobSkill>`) using `JobRequest.skillIds`; returned in `JobResponse`
 - [x] `JobTag` entity (name, slug, createdAt), `JobTagRequest` / `JobTagResponse` DTOs, `JobTagMapper`
 - [x] `JobTagRepository`, `JobTagService` / `JobTagServiceImpl` (create, list, get by id, update, delete)
 - [x] `JobTagController` (`/api/job-tags`): create, list, get by id, update, delete
@@ -117,13 +119,16 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Make tag name uniqueness case-insensitive (`existsByNameIgnoreCase`)
 - [ ] Decide delete strategy for tags (hard delete will break once tags are linked to jobs; consider an `active` flag like categories/skills)
 - [ ] Admin-only access for tag create/update/delete
-- [ ] Link tags to `Job` (many-to-many using `JobRequest.tagIds`, then use `tagIds` in `JobSpecification`)
+- [x] Linked tags to `Job` (`@ManyToMany Set<JobTag>`) using `JobRequest.tagIds`, with new `getTagsByIds()` in `JobTagService`; returned in `JobResponse`
+- [ ] `getSkillByIds()` / `getTagsByIds()`: fail when some ids aren't found; use a mutable `new HashSet<>()` instead of `Collections.emptySet()` when no ids are sent
+- [ ] `JobMapper`: null-check `job.getCategory()` (jobs created before the category link will throw NPE)
 - [ ] Extract a shared `SlugUtil` (same slug logic is duplicated in company, category, skill and tag services)
 - [ ] Validation fixes: `requirements` is `nullable=false` but not validated in `JobRequest`; `@NotNull` message on `categoryId` says "Company ID"; use `TEXT` columns for long descriptions
 - [ ] Remove `REMOTE` from `JobType` (duplicates `WorkMode.REMOTE`)
 - [ ] Pagination for `getJobs` / `getAllJobsAdmin`
 - [ ] Admin-only access for `/api/jobs/admin`; employer role check on create
 - [ ] Replace `X-User-Id` header with JWT / gateway-provided user id
+- [x] Tested job-service APIs successfully (jobs with category, skills and tags, plus category / skill / tag endpoints)
 - [ ] Recruiter dashboard endpoints
 
 ### Application Service (new module)
@@ -300,10 +305,18 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `JobTagRepository` (`existsByName`, `existsBySlug`).
   - `JobTagServiceImpl`: create (with unique slug), list, get by id, update, delete, `getTagEntityById`.
   - `JobTagController` (`/api/job-tags`) with create, list, get, update, delete.
+- Linked jobs to categories, skills and tags:
+  - `Job` entity now has `@ManyToOne JobCategory category`, `@ManyToMany Set<JobSkill> skills` and `@ManyToMany Set<JobTag> tags`.
+  - `JobServiceImpl` resolves category, skills and tags on create/update (class is `@Transactional`), and sets `status = DRAFT`, `active = true` and default `openings` explicitly.
+  - Added `getTagsByIds()` to `JobTagService`.
+  - `JobMapper` / `JobResponse` now return `company`, `category`, `skills` and `tags`.
+- Fixed earlier issues: `@Id` on category/skill entities, `active` set on create (categories and skills now show up in listings), NPE in `JobCategoryMapper` for missing `subcategories`, and builder defaults for job creation.
+- Tested the job-service APIs successfully (jobs with category, skills and tags, plus category / skill / tag endpoints).
 - **To fix next:**
-  - `generateUniqueSlug()` in `JobTagServiceImpl` has the inverted `existsBySlug` check (same bug as company, category and skill services); move the slug logic into a shared `SlugUtil`.
-  - Tag name check is case-sensitive; tags are hard-deleted, which will conflict with job links later.
-  - Tag endpoints have no admin check.
-  - `Job` isn't linked to categories, skills or tags yet, so `categoryId`, `skillIds` and `tagIds` in `JobRequest` / `JobSearchRequest` still do nothing. Next step: add the relations to `Job` and update `JobServiceImpl`, `JobMapper`, `JobResponse` and `JobSpecification`.
+  - `generateUniqueSlug()` in the category, skill and tag services still has the inverted `existsBySlug` check, so slugs come out as `java-1` instead of `java` and a duplicate slug can slip through (e.g. "C" and "C++"). Fix it once in a shared `SlugUtil`.
+  - `JobSpecification` still needs updating for the new relations (`category.id`, `skillIds`, `tagIds`, `keyword`) and the lowercase `location` pattern.
+  - `companyId` is still hardcoded to `1L` with an empty `CompanyResponse`; call company-service (OpenFeign + Resilience4j).
+  - `JobMapper` should null-check `job.getCategory()`; `getSkillByIds()` / `getTagsByIds()` should fail on unknown ids and `Job` should use a mutable `HashSet` instead of `Collections.emptySet()`.
+  - Admin-only checks on category/skill/tag endpoints and `/api/jobs/admin`, `X-User-Id` replaced by JWT / gateway user id, pagination, and tag delete strategy.
 
 <!-- Add new dated entries above this line as you make progress -->

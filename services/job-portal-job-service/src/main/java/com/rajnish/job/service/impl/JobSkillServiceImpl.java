@@ -31,6 +31,7 @@ public class JobSkillServiceImpl implements JobSkillService {
                 .name(request.getName())
                 .slug(slug)
                 .category(request.getCategory())
+                .active(true)
                 .build();
 
         JobSkill savedSkill = jobSkillRepository.save(skill);
