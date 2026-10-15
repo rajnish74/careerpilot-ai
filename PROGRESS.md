@@ -26,7 +26,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
 - [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
-- [ ] `job-portal-resume-service` — module created, dependencies and database configured; entity and endpoints pending
+- [ ] `job-portal-resume-service` — resume basics built (create, personal info, summary, default, delete); resume sections, fixes and testing pending
 
 ---
 
@@ -133,19 +133,28 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Recruiter dashboard endpoints
 
 ### Resume Service (new module — `job-portal-resume-service`)
-- [x] Module created under `services`
-- [x] Dependencies set up
-- [x] Database configuration added
-- [ ] Add module to `services/pom.xml` `<modules>` (if not already) and confirm the service starts
-- [ ] Test controller verified
-- [ ] Decide resume file storage (local disk for dev; S3 / Cloudinary for production)
-- [ ] `Resume` entity (userId, file name, file URL, file type, size, primary flag, parsed data, timestamps)
-- [ ] Resume upload endpoint (PDF / DOCX, size limit, content-type validation)
-- [ ] Get my resumes / get resume by id / download endpoints
-- [ ] Set primary resume, delete resume
-- [ ] Kafka event on upload (`resume.uploaded`) for AI parsing in `ai-service`
-- [ ] Store parsed data (skills, experience, education) returned by AI service
-- [ ] Ownership checks and user id from JWT / gateway (not a request header)
+Resume builder: candidates create multiple structured resumes (template, visibility, personal info, summary, sections).
+- [x] Module created under `services`, dependencies set up, database configured
+- [x] Enums: `ResumeTemplate` (`CLASSIC`, `MODERN`, `CREATIVE`, `MINIMAL`, `PROFESSIONAL`), `ResumeVisibility` (`PUBLIC`, `PRIVATE`, `LINK_ONLY`)
+- [x] `Resume` entity + `PersonalInfo` embeddable
+- [x] DTOs: `CreateResumeRequest`, `ResumeResponse`, `PersonalInfoResponse`
+- [x] `ResumeRepository` (`findByCandidateIdAndIsActiveTrue`, `findByCandidateIdAndIsDefaultTrue`)
+- [x] `ResumeService` / `ResumeServiceImpl`: create, get by id (owner-checked), get my resumes, update personal info (partial update), update summary, set default, soft delete
+- [x] `ResumeMapper`
+- [x] `ResumeController` (`/api/resumes`): create, get by id, my resumes, update personal info, update summary, set default, delete
+- [ ] Fix `ResumeMapper.toPersonalInfoResponse()`: null-check `personalInfo` (a new resume has none, so create throws NPE)
+- [ ] Default `template` (`PROFESSIONAL`), `visibility` and `completionScore` on create when the request omits them (columns are `nullable=false`); add `@Builder.Default` to `Resume` initializers
+- [ ] Block access to soft-deleted resumes (`getResumeEntity` ignores `isActive`) and prevent setting an inactive resume as default
+- [ ] Add `@Transactional` to `ResumeServiceImpl` (default switch is two writes); make the first resume a candidate creates the default automatically
+- [ ] Use a proper `PersonalInfoRequest` DTO with validation (email, URLs) instead of reusing `PersonalInfoResponse`
+- [ ] Send `summary` in the request body (not `@RequestParam`) and store it as `TEXT`
+- [ ] Return `201 Created` from `POST /api/resumes`
+- [ ] Resume sections: work experience, education, skills, projects, certifications, awards, languages (CRUD each; already sketched in `ResumeResponse`)
+- [ ] Completion score calculation
+- [ ] Enforce `visibility` (public / link-only sharing) and employer access to a candidate's resume when applying
+- [ ] PDF export / template rendering (optional: upload existing resume + AI parsing via `ai-service`)
+- [ ] Replace `X-User-Id` header with JWT / gateway user id
+- [ ] Test the resume APIs
 
 ### Application Service (new module)
 - [ ] Apply-to-job flow
@@ -329,12 +338,19 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - Fixed earlier issues: `@Id` on category/skill entities, `active` set on create (categories and skills now show up in listings), NPE in `JobCategoryMapper` for missing `subcategories`, and builder defaults for job creation.
 - Tested the job-service APIs successfully (jobs with category, skills and tags, plus category / skill / tag endpoints).
 - Created new module `job-portal-resume-service` under `services`, set up its dependencies and configured its database.
+- Built the resume basics in `job-portal-resume-service`:
+  - `Resume` entity (`candidateId`, `title`, `template`, `visibility`, `isDefault`, `personalInfo`, `summary`, `isActive`, `completionScore`, timestamps) and `PersonalInfo` embeddable.
+  - `ResumeTemplate` and `ResumeVisibility` enums.
+  - `CreateResumeRequest`, `ResumeResponse`, `PersonalInfoResponse`, `ResumeMapper`.
+  - `ResumeRepository` and `ResumeServiceImpl`: create (with default switching), get by id (owner-checked), list my resumes, partial personal-info update, summary update, set default, soft delete.
+  - `ResumeController` (`/api/resumes`) with create, get, my, personal-info, summary, set-default and delete endpoints.
 - **To fix next:**
   - `generateUniqueSlug()` in the category, skill and tag services still has the inverted `existsBySlug` check, so slugs come out as `java-1` instead of `java` and a duplicate slug can slip through (e.g. "C" and "C++"). Fix it once in a shared `SlugUtil`.
   - `JobSpecification` still needs updating for the new relations (`category.id`, `skillIds`, `tagIds`, `keyword`) and the lowercase `location` pattern.
   - `companyId` is still hardcoded to `1L` with an empty `CompanyResponse`; call company-service (OpenFeign + Resilience4j).
   - `JobMapper` should null-check `job.getCategory()`; `getSkillByIds()` / `getTagsByIds()` should fail on unknown ids and `Job` should use a mutable `HashSet` instead of `Collections.emptySet()`.
   - Admin-only checks on category/skill/tag endpoints and `/api/jobs/admin`, `X-User-Id` replaced by JWT / gateway user id, pagination, and tag delete strategy.
-  - Finish `job-portal-resume-service` setup: register it in `services/pom.xml`, verify startup with a test controller, then build the `Resume` entity and upload endpoints.
+  - Resume service bugs: `ResumeMapper` throws NPE when `personalInfo` is null (every new resume), `template` / `visibility` can be null on create (columns are `nullable=false`), soft-deleted resumes can still be fetched and edited, service isn't `@Transactional`.
+  - Resume service gaps: validation on personal info, `summary` as request body, resume sections (experience, education, skills, projects, etc.), completion score, visibility rules, then test the APIs.
 
 <!-- Add new dated entries above this line as you make progress -->
