@@ -26,7 +26,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
 - [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
-- [ ] `job-portal-resume-service` — resume basics built (create, personal info, summary, default, delete); resume sections, fixes and testing pending
+- [ ] `job-portal-resume-service` — resume basics and work experience built; remaining sections, fixes and testing pending
 
 ---
 
@@ -142,6 +142,7 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [x] `ResumeService` / `ResumeServiceImpl`: create, get by id (owner-checked), get my resumes, update personal info (partial update), update summary, set default, soft delete
 - [x] `ResumeMapper`
 - [x] `ResumeController` (`/api/resumes`): create, get by id, my resumes, update personal info, update summary, set default, delete
+- [x] Work experience section: `WorkExperience` entity, `AddWorkExperience` / `WorkExperienceResponse` DTOs, `WorkExperienceMapper`, `WorkExperienceRepository`, `WorkExperienceService` / `WorkExperienceServiceImpl` (add, list, update, delete; owner-checked), `WorkExperienceController` (`/api/resume/{resumeId}/work-experiences`)
 - [ ] Fix `ResumeMapper.toPersonalInfoResponse()`: null-check `personalInfo` (a new resume has none, so create throws NPE)
 - [ ] Default `template` (`PROFESSIONAL`), `visibility` and `completionScore` on create when the request omits them (columns are `nullable=false`); add `@Builder.Default` to `Resume` initializers
 - [ ] Block access to soft-deleted resumes (`getResumeEntity` ignores `isActive`) and prevent setting an inactive resume as default
@@ -149,7 +150,14 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Use a proper `PersonalInfoRequest` DTO with validation (email, URLs) instead of reusing `PersonalInfoResponse`
 - [ ] Send `summary` in the request body (not `@RequestParam`) and store it as `TEXT`
 - [ ] Return `201 Created` from `POST /api/resumes`
-- [ ] Resume sections: work experience, education, skills, projects, certifications, awards, languages (CRUD each; already sketched in `ResumeResponse`)
+- [ ] Remaining resume sections: education, skills, projects, certifications, awards, languages (CRUD each; already sketched in `ResumeResponse`)
+- [ ] Include work experience (and other sections) in `ResumeResponse` / `getResumeById`
+- [ ] Work experience: `GET .../work-experiences` has no owner check, so anyone can read any resume's experiences; require the owner (or enforce `visibility`)
+- [ ] Work experience: update/delete don't check the experience belongs to the `resumeId` in the URL
+- [ ] Work experience: validate `endDate` is not before `startDate`, and clear `endDate` when `isCurrentJob` is true
+- [ ] Work experience: store `description` as `TEXT`; add `@Builder.Default` for `isCurrentJob`, `technologies`, `displayOrder`; add `@Transactional` to the service
+- [ ] Rename `AddWorkExperience` → `WorkExperienceRequest`, use base path `/api/resumes/{resumeId}/work-experiences` (consistent with `/api/resumes`), return `201 Created` on add, and use one consistent parameter order across service methods
+- [ ] Employment type reuses the `JobType` enum (which has a `REMOTE` value); consider a dedicated `EmploymentType` enum
 - [ ] Completion score calculation
 - [ ] Enforce `visibility` (public / link-only sharing) and employer access to a candidate's resume when applying
 - [ ] PDF export / template rendering (optional: upload existing resume + AI parsing via `ai-service`)
@@ -176,7 +184,7 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Resilience4j (circuit breaker on gateway → services)
 - [ ] Centralized logging/tracing (optional: ELK / Zipkin)
 - [ ] Global exception handling in `common-lib`
-- [ ] Common DTOs/enums in `common-lib` (currently empty)
+- [ ] Common DTOs/enums in `common-lib` (currently empty) — `ApiResponse` and enums like `JobType` are now duplicated across job-service and resume-service; move shared ones here
 
 ### DevOps
 - [ ] Dockerfile per service
@@ -344,6 +352,11 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `CreateResumeRequest`, `ResumeResponse`, `PersonalInfoResponse`, `ResumeMapper`.
   - `ResumeRepository` and `ResumeServiceImpl`: create (with default switching), get by id (owner-checked), list my resumes, partial personal-info update, summary update, set default, soft delete.
   - `ResumeController` (`/api/resumes`) with create, get, my, personal-info, summary, set-default and delete endpoints.
+- Added the work experience section to `job-portal-resume-service`:
+  - `WorkExperience` entity (company, title, employment type, location, dates, current-job flag, description, technologies, display order) linked to `Resume`.
+  - `AddWorkExperience`, `WorkExperienceResponse`, `WorkExperienceMapper`, `WorkExperienceRepository` (ordered by `displayOrder`).
+  - `WorkExperienceServiceImpl`: add, list, update and delete with ownership checks through the resume.
+  - `WorkExperienceController` (`/api/resume/{resumeId}/work-experiences`) with add, list, update and delete endpoints.
 - **To fix next:**
   - `generateUniqueSlug()` in the category, skill and tag services still has the inverted `existsBySlug` check, so slugs come out as `java-1` instead of `java` and a duplicate slug can slip through (e.g. "C" and "C++"). Fix it once in a shared `SlugUtil`.
   - `JobSpecification` still needs updating for the new relations (`category.id`, `skillIds`, `tagIds`, `keyword`) and the lowercase `location` pattern.
@@ -351,6 +364,8 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `JobMapper` should null-check `job.getCategory()`; `getSkillByIds()` / `getTagsByIds()` should fail on unknown ids and `Job` should use a mutable `HashSet` instead of `Collections.emptySet()`.
   - Admin-only checks on category/skill/tag endpoints and `/api/jobs/admin`, `X-User-Id` replaced by JWT / gateway user id, pagination, and tag delete strategy.
   - Resume service bugs: `ResumeMapper` throws NPE when `personalInfo` is null (every new resume), `template` / `visibility` can be null on create (columns are `nullable=false`), soft-deleted resumes can still be fetched and edited, service isn't `@Transactional`.
-  - Resume service gaps: validation on personal info, `summary` as request body, resume sections (experience, education, skills, projects, etc.), completion score, visibility rules, then test the APIs.
+  - Resume service gaps: validation on personal info, `summary` as request body, remaining resume sections (education, skills, projects, etc.), completion score, visibility rules, then test the APIs.
+  - Work experience: the list endpoint has no owner check (anyone can read any resume's experiences), update/delete ignore the `resumeId` in the URL, no date validation (`endDate` vs `startDate` / current job), `description` needs `TEXT`, and the base path `/api/resume/...` should match `/api/resumes`.
+  - Duplicated code across services (`ApiResponse`, `JobType`, etc.): move shared pieces into `common-lib`.
 
 <!-- Add new dated entries above this line as you make progress -->
