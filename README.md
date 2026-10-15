@@ -64,6 +64,7 @@ job-portal-system (parent pom)
     ├── job-portal-user-service           → Auth, user profile, JWT (in progress)
     ├── job-portal-company-service        → Company profiles & management (in progress)
     ├── job-portal-job-service            → Job postings & search (in progress)
+    ├── job-portal-resume-service         → Resume upload & management (in progress)
     ├── application-service               → Applications & tracking (planned)
     ├── ai-service                        → Gemini AI integration (planned)
     └── notification-service              → Kafka-driven notifications (planned)
@@ -124,6 +125,7 @@ job-portal-system (parent pom)
 | `job-portal-user-service` | Auth, JWT, user profile | 🟡 In progress (signup, login, JWT, profile & admin endpoints done; JWT validation filter & role checks pending) |
 | `job-portal-company-service` | Company profiles & management | 🟡 In progress (entity, DTOs, repository, service, mapper & REST endpoints done; security & gateway integration pending) |
 | `job-portal-job-service` | Job postings, search, filters | 🟡 In progress (jobs, categories, skills & tags linked and tested; company integration, search filters & security pending) |
+| `job-portal-resume-service` | Resume upload & management | 🟡 In progress (module, dependencies & DB configured; entity & endpoints pending) |
 | `application-service` | Job applications, tracking | 🔴 Not started |
 | `ai-service` | Gemini AI integration | 🔴 Not started |
 | `notification-service` | Kafka-based notifications | 🔴 Not started |

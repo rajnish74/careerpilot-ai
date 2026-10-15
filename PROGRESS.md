@@ -26,6 +26,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
 - [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
+- [ ] `job-portal-resume-service` — module created, dependencies and database configured; entity and endpoints pending
 
 ---
 
@@ -130,6 +131,21 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Replace `X-User-Id` header with JWT / gateway-provided user id
 - [x] Tested job-service APIs successfully (jobs with category, skills and tags, plus category / skill / tag endpoints)
 - [ ] Recruiter dashboard endpoints
+
+### Resume Service (new module — `job-portal-resume-service`)
+- [x] Module created under `services`
+- [x] Dependencies set up
+- [x] Database configuration added
+- [ ] Add module to `services/pom.xml` `<modules>` (if not already) and confirm the service starts
+- [ ] Test controller verified
+- [ ] Decide resume file storage (local disk for dev; S3 / Cloudinary for production)
+- [ ] `Resume` entity (userId, file name, file URL, file type, size, primary flag, parsed data, timestamps)
+- [ ] Resume upload endpoint (PDF / DOCX, size limit, content-type validation)
+- [ ] Get my resumes / get resume by id / download endpoints
+- [ ] Set primary resume, delete resume
+- [ ] Kafka event on upload (`resume.uploaded`) for AI parsing in `ai-service`
+- [ ] Store parsed data (skills, experience, education) returned by AI service
+- [ ] Ownership checks and user id from JWT / gateway (not a request header)
 
 ### Application Service (new module)
 - [ ] Apply-to-job flow
@@ -312,11 +328,13 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
   - `JobMapper` / `JobResponse` now return `company`, `category`, `skills` and `tags`.
 - Fixed earlier issues: `@Id` on category/skill entities, `active` set on create (categories and skills now show up in listings), NPE in `JobCategoryMapper` for missing `subcategories`, and builder defaults for job creation.
 - Tested the job-service APIs successfully (jobs with category, skills and tags, plus category / skill / tag endpoints).
+- Created new module `job-portal-resume-service` under `services`, set up its dependencies and configured its database.
 - **To fix next:**
   - `generateUniqueSlug()` in the category, skill and tag services still has the inverted `existsBySlug` check, so slugs come out as `java-1` instead of `java` and a duplicate slug can slip through (e.g. "C" and "C++"). Fix it once in a shared `SlugUtil`.
   - `JobSpecification` still needs updating for the new relations (`category.id`, `skillIds`, `tagIds`, `keyword`) and the lowercase `location` pattern.
   - `companyId` is still hardcoded to `1L` with an empty `CompanyResponse`; call company-service (OpenFeign + Resilience4j).
   - `JobMapper` should null-check `job.getCategory()`; `getSkillByIds()` / `getTagsByIds()` should fail on unknown ids and `Job` should use a mutable `HashSet` instead of `Collections.emptySet()`.
   - Admin-only checks on category/skill/tag endpoints and `/api/jobs/admin`, `X-User-Id` replaced by JWT / gateway user id, pagination, and tag delete strategy.
+  - Finish `job-portal-resume-service` setup: register it in `services/pom.xml`, verify startup with a test controller, then build the `Resume` entity and upload endpoints.
 
 <!-- Add new dated entries above this line as you make progress -->
