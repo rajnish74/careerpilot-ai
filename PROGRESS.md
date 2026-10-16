@@ -26,7 +26,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
 - [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
-- [ ] `job-portal-resume-service` — resume basics, work experience, skills and education built; remaining sections, fixes and testing pending
+- [ ] `job-portal-resume-service` — resume basics, work experience, skills, education and projects built; remaining sections, fixes and testing pending
 
 ---
 
@@ -159,8 +159,11 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Education: `fieldOfStudy` is `nullable=false` in the entity but optional in `AddEducationRequest`; make it required in the request or nullable in the entity
 - [ ] Education: add `@Size` limits matching the columns (`institutionName` 200, `degree` 200, `grade` 50) so long input returns 400 instead of a DB error; store `description` as `TEXT`; add `@Builder.Default` for `displayOrder`
 - [ ] Education: owner check on `GET .../educations`, verify the education belongs to the `resumeId` on update/delete, validate `endDate` is not before `startDate` and clear `endDate` while `isCurrentlyStudying` is true, return `201 Created` on add
-- [ ] Refactor: `assertOwner()` is copy-pasted in the resume, work experience, skills and education services; add one `getOwnedResume(resumeId, candidateId)` in `ResumeService` that also rejects inactive resumes
-- [ ] Remaining resume sections: projects, certifications, awards, languages (CRUD each; already sketched in `ResumeResponse`)
+- [ ] Refactor: `assertOwner()` is copy-pasted in the resume, work experience, skills, education and projects services; add one `getOwnedResume(resumeId, candidateId)` in `ResumeService` that also rejects inactive resumes
+- [x] Projects section: `Projects` entity, `AddProjectRequest` / `ProjectResponse` DTOs, `ProjectRepository`, `ProjectService` / `ProjectServiceImpl` (add, list, update, delete; owner-checked), `ProjectController` (`/api/resumes/{resumeId}/projects`)
+- [ ] Projects: add `@Builder.Default` to `technologies`; use `new ArrayList<>(...)` instead of `List.of()` for `technologies` (here and in work experience) since Hibernate-managed collections must be mutable; rename entity `Projects` → `Project`
+- [ ] Projects: store `description` as `TEXT`, validate `endDate` is not before `startDate` and clear `endDate` while `isOngoing` is true, owner check on `GET .../projects`, verify the project belongs to the `resumeId` on update/delete, return `201 Created` on add
+- [ ] Remaining resume sections: certifications, awards, languages (CRUD each; already sketched in `ResumeResponse`)
 - [ ] Include work experience (and other sections) in `ResumeResponse` / `getResumeById`
 - [ ] Work experience: `GET .../work-experiences` has no owner check, so anyone can read any resume's experiences; require the owner (or enforce `visibility`)
 - [ ] Work experience: update/delete don't check the experience belongs to the `resumeId` in the URL
@@ -377,6 +380,11 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `AddEducationRequest`, `EducationResponse`, `EducationRepository` (ordered by `displayOrder`), mapping in `ResumeMapper.toEducationResponse`.
   - `EducationServiceImpl`: add, list, update and delete with ownership checks through the resume.
   - `EducationController` (`/api/resumes/{resumeId}/educations`) with add, list, update and delete endpoints.
+- Added the projects section to `job-portal-resume-service`:
+  - `Projects` entity (title, description, technologies, project URL, source code URL, dates, ongoing flag, display order) linked to `Resume`.
+  - `AddProjectRequest` (with http/https URL validation), `ProjectResponse`, `ProjectRepository` (ordered by `displayOrder`), mapping in `ResumeMapper.toProjectResponse`.
+  - `ProjectServiceImpl`: add, list, update and delete with ownership checks through the resume.
+  - `ProjectController` (`/api/resumes/{resumeId}/projects`) with add, list, update and delete endpoints.
 - **To fix next:**
   - `generateUniqueSlug()` in the category, skill and tag services still has the inverted `existsBySlug` check, so slugs come out as `java-1` instead of `java` and a duplicate slug can slip through (e.g. "C" and "C++"). Fix it once in a shared `SlugUtil`.
   - `JobSpecification` still needs updating for the new relations (`category.id`, `skillIds`, `tagIds`, `keyword`) and the lowercase `location` pattern.
@@ -388,6 +396,7 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - Work experience: the list endpoint has no owner check (anyone can read any resume's experiences), update/delete ignore the `resumeId` in the URL, no date validation (`endDate` vs `startDate` / current job), `description` needs `TEXT`, and the base path `/api/resume/...` should match `/api/resumes`.
   - Duplicated code across services (`ApiResponse`, `JobType`, etc.): move shared pieces into `common-lib`.
   - Education: `fieldOfStudy` is required in the entity but optional in the request (null causes a DB error), no `@Size` limits matching the column lengths, list endpoint has no owner check, update/delete ignore `resumeId`, no date validation.
+  - Projects: `technologies` needs `@Builder.Default` and a mutable list (`List.of()` is immutable and can break Hibernate later; same in work experience), plus the same gaps as the other sections (list endpoint owner check, `resumeId` match on update/delete, date validation, `TEXT` description, 201 on add).
   - Move the repeated `assertOwner()` into one shared `ResumeService` method that also rejects inactive resumes.
   - **`ResumeSkills` is mapped to the `resumes` table** (same as `Resume`), which will clash with the resume schema; use `resume_skills`. Also add `@Enumerated(EnumType.STRING)` on `proficiencyLevel`, owner check on the skills list endpoint, `resumeId` match on update/delete, and duplicate-skill validation.
 

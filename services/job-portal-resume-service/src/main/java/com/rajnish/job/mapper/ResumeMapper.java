@@ -2,12 +2,10 @@ package com.rajnish.job.mapper;
 
 import com.rajnish.job.dto.PersonalInfoResponse;
 import com.rajnish.job.dto.response.EducationResponse;
+import com.rajnish.job.dto.response.ProjectResponse;
 import com.rajnish.job.dto.response.ResumeResponse;
 import com.rajnish.job.dto.response.ResumeSkillResponse;
-import com.rajnish.job.entity.Education;
-import com.rajnish.job.entity.PersonalInfo;
-import com.rajnish.job.entity.Resume;
-import com.rajnish.job.entity.ResumeSkills;
+import com.rajnish.job.entity.*;
 
 public class ResumeMapper {
 
@@ -73,6 +71,25 @@ public class ResumeMapper {
                 .isCurrentlyStudying(edu.getIsCurrentlyStudying())
                 .description(edu.getDescription())
                 .displayOrder(edu.getDisplayOrder())
+                .build();
+    }
+
+    public static ProjectResponse toProjectResponse(Projects project) {
+        if (project == null) {
+            return null;
+        }
+
+        return ProjectResponse.builder()
+                .id(project.getId())
+                .title(project.getTitle())
+                .description(project.getDescription())
+                .technologies(project.getTechnologies())
+                .projectUrl(project.getProjectUrl())
+                .sourceCodeUrl(project.getSourceCodeUrl())
+                .startDate(project.getStartDate())
+                .endDate(project.getEndDate())
+                .isOngoing(project.getIsOngoing())
+                .displayOrder(project.getDisplayOrder())
                 .build();
     }
 }

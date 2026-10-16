@@ -48,6 +48,8 @@ public class Education {
 
     private String description;
 
+    @Builder.Default
+    @Column(nullable = false)
     private Integer displayOrder = 0;
 
     @CreationTimestamp
