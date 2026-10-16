@@ -1,43 +1,74 @@
 package com.rajnish.job.service.impl;
 
 import com.rajnish.job.dto.PersonalInfoResponse;
-import com.rajnish.job.dto.response.ResumeResponse;
+import com.rajnish.job.dto.response.*;
 import com.rajnish.job.entity.PersonalInfo;
 import com.rajnish.job.entity.Resume;
+import com.rajnish.job.enums.ResumeTemplate;
+import com.rajnish.job.enums.ResumeVisibility;
 import com.rajnish.job.mapper.ResumeMapper;
+import com.rajnish.job.mapper.WorkExperienceMapper;
 import com.rajnish.job.payload.CreateResumeRequest;
-import com.rajnish.job.respository.ResumeRepository;
+import com.rajnish.job.respository.*;
 import com.rajnish.job.service.ResumeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ResumeServiceImpl implements ResumeService {
 
     private final ResumeRepository resumeRepository;
+    private final WorkExperienceRepository workExperienceRepository;
+    private final EducationRepository educationRepository;
+    private final ProjectRepository projectRepository;
+    private final AwardRepository awardRepository;
+    private final CertificationRepository certificationRepository;
+    private final ResumeSkillRepository resumeSkillRepository;
+    private final LanguageRepository languageRepository;
+
 
     @Override
-    public ResumeResponse createResume(Long candidateId, CreateResumeRequest req) {
+    public ResumeResponse createResume(
+            Long candidateId,
+            CreateResumeRequest req
+    ) {
         if (Boolean.TRUE.equals(req.getIsDefault())) {
-            resumeRepository.findByCandidateIdAndIsDefaultTrue(candidateId)
+            resumeRepository
+                    .findByCandidateIdAndIsDefaultTrue(candidateId)
                     .ifPresent(existing -> {
                         existing.setIsDefault(false);
                         resumeRepository.save(existing);
                     });
         }
+
         Resume resume = Resume.builder()
                 .candidateId(candidateId)
                 .title(req.getTitle())
-                .template(req.getTemplate())
-                .visibility(req.getVisibility())
+                .template(
+                        req.getTemplate() != null
+                                ? req.getTemplate()
+                                : ResumeTemplate.PROFESSIONAL
+                )
+                .visibility(
+                        req.getVisibility() != null
+                                ? req.getVisibility()
+                                : ResumeVisibility.PUBLIC
+                )
                 .isDefault(Boolean.TRUE.equals(req.getIsDefault()))
                 .isActive(true)
+                .completionScore(0)
+                .displayOrder(0)
                 .build();
+
         Resume saved = resumeRepository.save(resume);
+
         return buildFullResponse(saved);
     }
+
 
     @Override
     public ResumeResponse getResumeById(Long resumeId, Long candidateId) throws Exception {
@@ -144,7 +175,30 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     private ResumeResponse buildFullResponse(Resume resume) {
-        return ResumeMapper.toResponse(resume);
+        Long resumeId = resume.getId();
+        List<WorkExperienceResponse> workExperienceResponses = workExperienceRepository.findByResume_IdOrderByDisplayOrderAsc(resumeId)
+                .stream().map(WorkExperienceMapper::toWorkExperienceResponse).toList();
+        List<EducationResponse> educationResponses = educationRepository.findByResume_IdOrderByDisplayOrderAsc(resumeId)
+                .stream().map(ResumeMapper::toEducationResponse).toList();
+        List<ResumeSkillResponse> skillResponses = resumeSkillRepository.findByResume_IdOrderByDisplayOrderAsc(resumeId)
+                .stream().map(ResumeMapper::toSkillResponse).toList();
+        List<ProjectResponse> responses = projectRepository.findByResume_IdOrderByDisplayOrderAsc(resumeId)
+                .stream().map(ResumeMapper::toProjectResponse).toList();
+        List<AwardResponse> awardResponses = awardRepository.findByResume_IdOrderByDisplayOrderAscIdAsc(resumeId)
+                .stream().map(ResumeMapper::toAwardResponse).toList();
+        List<CertificationResponse> certificationResponses = certificationRepository.findByResume_IdOrderByDisplayOrderAscIdAsc(resumeId)
+                .stream().map(ResumeMapper::toCertificationResponse).toList();
+        List<LanguageResponse> languageResponses = languageRepository.findByResume_IdOrderByDisplayOrderAsc(resumeId)
+                .stream().map(ResumeMapper::toLanguageResponse).toList();
+        return ResumeMapper.toResponse(
+                resume,
+                workExperienceResponses,
+                educationResponses,
+                skillResponses,
+                responses,
+                certificationResponses,
+                awardResponses,
+                languageResponses);
 
     }
 

@@ -29,14 +29,17 @@ public class Resume {
     @Column(nullable = false)
     private String title;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ResumeTemplate template = ResumeTemplate.PROFESSIONAL;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ResumeVisibility visibility = ResumeVisibility.PUBLIC;
 
+    @Builder.Default
     @Column(nullable = false)
     private Boolean isDefault = false;
 
@@ -45,16 +48,21 @@ public class Resume {
 
     private String summary;
 
+    @Builder.Default
     private Boolean isActive = true;
 
+    @Builder.Default
     private Integer completionScore = 0;
+
+    // Fix for display_order NOT NULL error
+    @Builder.Default
+    private Integer displayOrder = 0;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
     @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
-
 }

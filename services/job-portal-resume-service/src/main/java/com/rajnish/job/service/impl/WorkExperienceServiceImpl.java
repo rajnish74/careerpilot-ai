@@ -10,10 +10,12 @@ import com.rajnish.job.service.ResumeService;
 import com.rajnish.job.service.WorkExperienceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class WorkExperienceServiceImpl implements WorkExperienceService {
 
     private final ResumeService resumeService;
