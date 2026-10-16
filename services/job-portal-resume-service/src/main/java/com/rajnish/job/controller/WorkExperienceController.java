@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/resume/{resumeId}/work-experiences")
+@RequestMapping("/api/resumes/{resumeId}/work-experiences")
 @RequiredArgsConstructor
 public class WorkExperienceController {
 

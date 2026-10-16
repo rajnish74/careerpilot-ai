@@ -1,9 +1,13 @@
 package com.rajnish.job.mapper;
 
 import com.rajnish.job.dto.PersonalInfoResponse;
+import com.rajnish.job.dto.response.EducationResponse;
 import com.rajnish.job.dto.response.ResumeResponse;
+import com.rajnish.job.dto.response.ResumeSkillResponse;
+import com.rajnish.job.entity.Education;
 import com.rajnish.job.entity.PersonalInfo;
 import com.rajnish.job.entity.Resume;
+import com.rajnish.job.entity.ResumeSkills;
 
 public class ResumeMapper {
 
@@ -40,6 +44,35 @@ public class ResumeMapper {
                 .completionScore(resume.getCompletionScore())
                 .createdAt(resume.getCreatedAt())
                 .updatedAt(resume.getUpdatedAt())
+                .build();
+    }
+
+    public static ResumeSkillResponse toSkillResponse(ResumeSkills skill) {
+        if (skill == null) return null;
+
+        return ResumeSkillResponse.builder()
+                .id(skill.getId())
+                .skillName(skill.getSkillName())
+                .proficiencyLevel(skill.getProficiencyLevel())
+                .yearsOfExperience(skill.getYearsOfExperience())
+                .displayOrder(skill.getDisplayOrder())
+                .build();
+    }
+
+    public static EducationResponse toEducationResponse(Education edu) {
+        if (edu == null) return null;
+
+        return EducationResponse.builder()
+                .id(edu.getId())
+                .institutionName(edu.getInstitutionName())
+                .degree(edu.getDegree())
+                .fieldOfStudy(edu.getFieldOfStudy())
+                .grade(edu.getGrade())
+                .startDate(edu.getStartDate())
+                .endDate(edu.getEndDate())
+                .isCurrentlyStudying(edu.getIsCurrentlyStudying())
+                .description(edu.getDescription())
+                .displayOrder(edu.getDisplayOrder())
                 .build();
     }
 }

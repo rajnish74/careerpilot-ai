@@ -26,7 +26,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] Lock down `SecurityConfig` route rules once JWT filter is in place
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
 - [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
-- [ ] `job-portal-resume-service` — resume basics and work experience built; remaining sections, fixes and testing pending
+- [ ] `job-portal-resume-service` — resume basics, work experience, skills and education built; remaining sections, fixes and testing pending
 
 ---
 
@@ -150,7 +150,17 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Use a proper `PersonalInfoRequest` DTO with validation (email, URLs) instead of reusing `PersonalInfoResponse`
 - [ ] Send `summary` in the request body (not `@RequestParam`) and store it as `TEXT`
 - [ ] Return `201 Created` from `POST /api/resumes`
-- [ ] Remaining resume sections: education, skills, projects, certifications, awards, languages (CRUD each; already sketched in `ResumeResponse`)
+- [x] Skills section: `ResumeSkills` entity, `AddResumeSkillRequest` / `ResumeSkillResponse` DTOs, `ResumeSkillRepository`, `ResumeSkillService` / `ResumeSkillServiceImpl` (add, list, update, delete; owner-checked), `ResumeSkillController` (`/api/resumes/{resumeId}/skills`)
+- [ ] **Fix `ResumeSkills` table name:** it is mapped to `@Table(name = "resumes")`, the same table as `Resume`. Change to `resume_skills`
+- [ ] Skills: add `@Enumerated(EnumType.STRING)` on `proficiencyLevel` and `@Builder.Default` for `proficiencyLevel` / `displayOrder`; rename entity `ResumeSkills` → `ResumeSkill`
+- [ ] Skills: owner check on `GET .../skills`, verify the skill belongs to the `resumeId` on update/delete, reject duplicate skill names within a resume (case-insensitive), add `@Max` on `yearsOfExperience`
+- [ ] Skills: consider linking to the job-service skill catalog (skill id / slug) so resume skills can be matched against job skills
+- [x] Education section: `Education` entity, `AddEducationRequest` / `EducationResponse` DTOs, `EducationRepository`, `EducationService` / `EducationServiceImpl` (add, list, update, delete; owner-checked), `EducationController` (`/api/resumes/{resumeId}/educations`)
+- [ ] Education: `fieldOfStudy` is `nullable=false` in the entity but optional in `AddEducationRequest`; make it required in the request or nullable in the entity
+- [ ] Education: add `@Size` limits matching the columns (`institutionName` 200, `degree` 200, `grade` 50) so long input returns 400 instead of a DB error; store `description` as `TEXT`; add `@Builder.Default` for `displayOrder`
+- [ ] Education: owner check on `GET .../educations`, verify the education belongs to the `resumeId` on update/delete, validate `endDate` is not before `startDate` and clear `endDate` while `isCurrentlyStudying` is true, return `201 Created` on add
+- [ ] Refactor: `assertOwner()` is copy-pasted in the resume, work experience, skills and education services; add one `getOwnedResume(resumeId, candidateId)` in `ResumeService` that also rejects inactive resumes
+- [ ] Remaining resume sections: projects, certifications, awards, languages (CRUD each; already sketched in `ResumeResponse`)
 - [ ] Include work experience (and other sections) in `ResumeResponse` / `getResumeById`
 - [ ] Work experience: `GET .../work-experiences` has no owner check, so anyone can read any resume's experiences; require the owner (or enforce `visibility`)
 - [ ] Work experience: update/delete don't check the experience belongs to the `resumeId` in the URL
@@ -357,6 +367,16 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `AddWorkExperience`, `WorkExperienceResponse`, `WorkExperienceMapper`, `WorkExperienceRepository` (ordered by `displayOrder`).
   - `WorkExperienceServiceImpl`: add, list, update and delete with ownership checks through the resume.
   - `WorkExperienceController` (`/api/resume/{resumeId}/work-experiences`) with add, list, update and delete endpoints.
+- Added the skills section to `job-portal-resume-service`:
+  - `ResumeSkills` entity (skill name, proficiency level, years of experience, display order) linked to `Resume`.
+  - `AddResumeSkillRequest`, `ResumeSkillResponse`, `ResumeSkillRepository` (ordered by `displayOrder`), mapping in `ResumeMapper.toSkillResponse`.
+  - `ResumeSkillServiceImpl`: add, list, update and delete with ownership checks through the resume.
+  - `ResumeSkillController` (`/api/resumes/{resumeId}/skills`) with add (201), list, update and delete endpoints.
+- Added the education section to `job-portal-resume-service`:
+  - `Education` entity (institution, degree, field of study, grade, dates, currently-studying flag, description, display order) linked to `Resume`.
+  - `AddEducationRequest`, `EducationResponse`, `EducationRepository` (ordered by `displayOrder`), mapping in `ResumeMapper.toEducationResponse`.
+  - `EducationServiceImpl`: add, list, update and delete with ownership checks through the resume.
+  - `EducationController` (`/api/resumes/{resumeId}/educations`) with add, list, update and delete endpoints.
 - **To fix next:**
   - `generateUniqueSlug()` in the category, skill and tag services still has the inverted `existsBySlug` check, so slugs come out as `java-1` instead of `java` and a duplicate slug can slip through (e.g. "C" and "C++"). Fix it once in a shared `SlugUtil`.
   - `JobSpecification` still needs updating for the new relations (`category.id`, `skillIds`, `tagIds`, `keyword`) and the lowercase `location` pattern.
@@ -367,5 +387,8 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - Resume service gaps: validation on personal info, `summary` as request body, remaining resume sections (education, skills, projects, etc.), completion score, visibility rules, then test the APIs.
   - Work experience: the list endpoint has no owner check (anyone can read any resume's experiences), update/delete ignore the `resumeId` in the URL, no date validation (`endDate` vs `startDate` / current job), `description` needs `TEXT`, and the base path `/api/resume/...` should match `/api/resumes`.
   - Duplicated code across services (`ApiResponse`, `JobType`, etc.): move shared pieces into `common-lib`.
+  - Education: `fieldOfStudy` is required in the entity but optional in the request (null causes a DB error), no `@Size` limits matching the column lengths, list endpoint has no owner check, update/delete ignore `resumeId`, no date validation.
+  - Move the repeated `assertOwner()` into one shared `ResumeService` method that also rejects inactive resumes.
+  - **`ResumeSkills` is mapped to the `resumes` table** (same as `Resume`), which will clash with the resume schema; use `resume_skills`. Also add `@Enumerated(EnumType.STRING)` on `proficiencyLevel`, owner check on the skills list endpoint, `resumeId` match on update/delete, and duplicate-skill validation.
 
 <!-- Add new dated entries above this line as you make progress -->
