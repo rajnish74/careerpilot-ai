@@ -30,6 +30,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
 - [ ] `job-portal-preferences-service` — module created, saved jobs built; fixes, testing and other preference features pending
 - [ ] `job-portal-cloud` — Eureka registry and API gateway (routes + JWT) built and tested; gateway hardening and config-server pending
+- [ ] `job-portal-ai-service` — Gemini API integration in progress; features, gateway route and hardening pending
 
 ---
 
@@ -230,11 +231,18 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Kafka consumer for `application.submitted`, `job.posted`, etc.
 - [ ] Email/notification dispatch
 
-### AI Service (new module)
-- [ ] Gemini AI client setup
-- [ ] Resume parsing (extract skills/experience from uploaded resume)
-- [ ] Job-to-candidate matching score
+### AI Service (new module — `job-portal-ai-service`)
+- [x] Module started; Gemini API integration in progress (calling Gemini with an API key to get answers)
+- [ ] Keep the Gemini API key out of git: read it from an environment variable / config server (not `application.yaml` in the repo), add the key file / `.env` to `.gitignore`, and rotate the key if it was ever committed
+- [ ] Make the model name, timeouts and token limits configurable properties
+- [ ] Error handling for Gemini failures (quota / rate limit, timeouts, blocked or empty responses) with Resilience4j retry / circuit breaker / fallback
+- [ ] Register the service with Eureka and add a gateway route (`/api/ai/**` → `job-portal-ai-service`, JWT-protected) in `RouterConfig`
+- [ ] Per-user rate limiting / usage limits to control cost
+- [ ] Resume parsing (extract skills/experience from a resume), returning structured JSON that is validated before use
+- [ ] Job-to-candidate matching score (resume vs job) for `aiScore` / `aiShortlistStatus` in application-service
 - [ ] AI chatbot for candidate queries
+- [ ] Treat resume / job text as untrusted input (prompt injection) and never send more personal data to Gemini than needed
+- [ ] Kafka integration: consume `application.submitted`, publish the screening result back to application-service
 
 ### Cross-cutting
 - [ ] Redis caching (job listings, user sessions)
@@ -466,6 +474,7 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `SavedJob` entity, `SavedJobRequest`, `SavedJobResponse`, `SavedJobRepository`, `PreferenceMapper`.
   - `SavedJobServiceImpl`: save (duplicate check), unsave (ownership check), list, is-saved.
   - `SavedJobController` (`/api/preferences/saved-jobs`) with save, list, check, delete and a `/test` endpoint.
+- Started `job-portal-ai-service`: integrating the Google Gemini API (API key) to get AI-generated answers; this is the base for resume parsing, job matching and the candidate chatbot.
 - Set up the API gateway (Spring Cloud Gateway Server MVC) in `job-portal-cloud`:
   - `RouterConfig` with Eureka load-balanced routes for user, company, job, application, resume and preferences services.
   - Public `/auth/**` route; JWT-protected routes for all `/api/**` paths; `/api/admin/**` requires `ROLE_ADMIN`.
@@ -475,6 +484,7 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - Created the Eureka Server module (`job-portal-registry-service`) in `job-portal-cloud`.
   - Set up Eureka client registration for all services (user, company, job, resume, application, preferences).
 - **To fix next:**
+  - AI service: keep the Gemini API key out of the repository (env var / config server), handle Gemini errors and rate limits, register with Eureka and add the `/api/ai/**` gateway route, then build resume parsing and job matching.
   - Gateway: client-supplied `X-User-*` headers are not removed before the verified ones are added (spoofable), admin-only endpoints are reachable by any authenticated user through the normal routes, the preferences route id (`job-portal-job-preferences`) doesn't follow the naming of the other services, no CORS yet, and the JWT secret must be shared via config.
   - Confirm all services register and show as `UP` in the Eureka dashboard; then replace hardcoded ids and placeholder data with service-to-service calls by service name.
   - `SavedJobController.unsavedJob` passes `(savedJobId, candidateId)` but the service expects `(candidateId, savedJobId)`: the arguments are swapped. Also missing `@NotNull` / `@Valid` on `jobId`, no job existence check, no unique constraint on (`candidateId`, `jobId`).
