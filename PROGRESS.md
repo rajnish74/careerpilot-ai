@@ -28,6 +28,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
 - [ ] `job-portal-resume-service` — all resume sections built and tested; read-access rules, visibility, completion score and security pending
 - [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
+- [ ] `job-portal-preferences-service` — module created, saved jobs built; fixes, testing and other preference features pending
 
 ---
 
@@ -194,6 +195,19 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] AI screening: score resumes against jobs with Gemini via `ai-service` and set `aiScore` / `aiShortlistStatus`
 - [ ] Kafka events: `application.submitted`, `application.status.changed` (consumed by notification-service)
 - [ ] Replace `X-User-Id` header with JWT / gateway user id, and role checks (candidate vs employer)
+
+### Preferences Service (new module — `job-portal-preferences-service`)
+- [x] Module created (`JobPortalPreferencesServiceApplication`)
+- [x] Saved jobs: `SavedJob` entity (candidateId, jobId, savedAt), `SavedJobRequest` / `SavedJobResponse`, `SavedJobRepository`, `PreferenceMapper`, `SavedJobService` / `SavedJobServiceImpl` (save with duplicate check, unsave with ownership check, list, is-saved)
+- [x] `SavedJobController` (`/api/preferences/saved-jobs`): save, list, check, delete, plus a `/test` endpoint
+- [ ] **Fix argument order in `SavedJobController.unsavedJob`:** the service signature is `(candidateId, savedJobId)` but the controller passes `(savedJobId, candidateId)`, so unsave looks up the wrong record
+- [ ] Validate the request: add `@NotNull` on `SavedJobRequest.jobId` and `@Valid` in the controller (a null `jobId` currently causes a DB error)
+- [ ] Verify the job exists (job-service) before saving, and return job details with saved jobs instead of only ids (OpenFeign + Resilience4j)
+- [ ] Add a unique constraint on (`candidateId`, `jobId`) and an index on `candidateId`; return `201 Created` from the save endpoint; pagination for the list
+- [ ] Remove the `/test` endpoint once the service is verified
+- [ ] Test the saved-jobs APIs
+- [ ] Other preference features (to be decided, e.g. preferred roles / locations / salary, job alerts)
+- [ ] Replace `X-User-Id` header with JWT / gateway user id
 
 ### Notification Service (new module)
 - [ ] Kafka consumer for `application.submitted`, `job.posted`, etc.
@@ -431,7 +445,12 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `ApplicationNoteServiceImpl`: add, list, delete recruiter notes.
   - `ApplicationController` (`/api/applications`) and `ApplicationNoteController` (`/api/applications/{applicationId}/notes`).
 - Tested the application APIs successfully.
+- Created `job-portal-preferences-service` with saved jobs:
+  - `SavedJob` entity, `SavedJobRequest`, `SavedJobResponse`, `SavedJobRepository`, `PreferenceMapper`.
+  - `SavedJobServiceImpl`: save (duplicate check), unsave (ownership check), list, is-saved.
+  - `SavedJobController` (`/api/preferences/saved-jobs`) with save, list, check, delete and a `/test` endpoint.
 - **To fix next:**
+  - `SavedJobController.unsavedJob` passes `(savedJobId, candidateId)` but the service expects `(candidateId, savedJobId)`: the arguments are swapped. Also missing `@NotNull` / `@Valid` on `jobId`, no job existence check, no unique constraint on (`candidateId`, `jobId`).
   - Hardcoded `companyId` / `employerId` (`1L`) and placeholder job / company / candidate in responses (job is built from the application id); integrate job, company, user and resume services.
   - Internal notes are returned to candidates and the notes list / application detail have no access checks; `deleteNote` doesn't check the note belongs to the application.
   - `isStarted` / `isStarred` mismatch breaks the starred filter and can NPE when the filter is omitted; `toggleStar` NPEs on new applications (null default); `toNoteResponse` uses the wrong id.
