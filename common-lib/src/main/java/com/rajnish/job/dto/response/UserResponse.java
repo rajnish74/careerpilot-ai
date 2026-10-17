@@ -2,10 +2,12 @@ package com.rajnish.job.dto.response;
 
 import com.rajnish.job.enums.UserRole;
 import com.rajnish.job.enums.UserStatus;
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 @Data
+@Builder
 public class UserResponse {
 
     private Long id;

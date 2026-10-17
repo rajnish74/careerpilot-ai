@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-10-16**
+Last updated: **2026-10-17**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -27,6 +27,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-company-service` — endpoints done; security, gateway integration and pending fixes remain
 - [ ] `job-portal-job-service` — CRUD, search, categories, skills, tags and job linking built and tested; company integration, search filters, slug fix and security pending
 - [ ] `job-portal-resume-service` — all resume sections built and tested; read-access rules, visibility, completion score and security pending
+- [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
 
 ---
 
@@ -163,10 +164,36 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] PDF export / template rendering (optional: upload existing resume + AI parsing via `ai-service`)
 - [ ] Replace `X-User-Id` header with JWT / gateway user id
 
-### Application Service (new module)
-- [ ] Apply-to-job flow
-- [ ] Application status tracking
-- [ ] Kafka producer: `application.submitted` event
+### Application Service (new module — `job-portal-application-service`)
+- [x] Module created (`JobPortalApplicationServiceApplication`)
+- [x] `Application` entity (candidate, job, company, employer, resume, status, cover letter, expected salary, available-from, starred flag, AI score / shortlist status, withdrawn info, timestamps)
+- [x] `ApplicationNote` entity (internal recruiter notes)
+- [x] Enums: `ApplicationStatus` (`PENDING`, `REVIEWING`, `SHORTLISTED`, `INTERVIEW_SCHEDULE`, `REJECTED`, `HIRED`, `WITHDRAWN`), `AiShortlistStatus`
+- [x] DTOs: `CreateApplicationRequest`, `UpdateApplicationStatusRequest`, `WithdrawApplicationRequest`, `CompanyApplicationFilterRequest`, `AddApplicationNoteRequest`, `ApplicationResponse`, `ApplicationNoteResponse`
+- [x] `ApplicationRepository` (+ `JpaSpecificationExecutor`), `ApplicationNoteRepository`, `ApplicationSpecification` (company filters: job, status, starred, AI shortlist status, min AI score)
+- [x] `ApplicationMapper`
+- [x] `ApplicationServiceImpl`: apply (duplicate check), get by id, my applications, applications for a job, company applications with filters and AI-score sorting, update status (employer-checked), withdraw, toggle star, delete
+- [x] `ApplicationNoteServiceImpl`: add, list, delete notes (employer-checked on add/delete)
+- [x] `ApplicationController` (`/api/applications`): apply, get by id, my, company list, update status, withdraw, star, delete
+- [x] `ApplicationNoteController` (`/api/applications/{applicationId}/notes`): add (201), list, delete
+- [x] Tested the application APIs successfully
+- [ ] Replace hardcoded `companyId = 1L` / `employerId = 1L` (create and company list): fetch the job from job-service, reject missing / non-`OPEN` / past-deadline jobs, and verify the resume belongs to the candidate (resume-service) — OpenFeign + Resilience4j
+- [ ] `buildFullResponse()` uses placeholders: `JobResponse` is built with the **application id** instead of `jobId`, and company / candidate contain only ids; load real data from job, company and user services
+- [ ] Privacy: internal recruiter notes are included in `ApplicationResponse` for everyone (candidate `/my` and `/{id}` too), `GET .../notes` has no employer check, and `GET /api/applications/{id}` has no access check; show notes to employers only and verify the caller is the candidate or the job's employer
+- [ ] `ApplicationNoteServiceImpl.deleteNote()` doesn't check the note belongs to the `applicationId` in the URL
+- [ ] `ApplicationSpecification` mismatch: parameter is a primitive `boolean isStarred` (NPE when `isStarted` isn't sent) and it filters on `"isStarred"` while the entity field is `isStarted`; rename the field to `isStarred` everywhere and use `Boolean`
+- [ ] `ApplicationMapper.toNoteResponse()` sets `id` from `addedByUserId`; use `note.getId()`. Rename `createdAtt` → `createdAt` in `ApplicationNote`
+- [ ] `Application` entity: `isStarted` is null on new applications (builder ignores initializers), so `toggleStar` throws NPE; add `@Builder.Default` (also `status`, `aiShortlistStatus` default `NOT_SCREENED`) and `@Enumerated(EnumType.STRING)` on `aiShortlistStatus`
+- [ ] `coverLetter` is validated up to 3000 characters but the column is varchar(255); use `TEXT` (also `withdrawnReason`)
+- [ ] Status rules: `UpdateApplicationStatusRequest.status` needs `@NotNull`; add valid transitions (no changes after `HIRED` / `REJECTED` / `WITHDRAWN`, employers can't set `WITHDRAWN`)
+- [ ] `withdraw()`: set `withdrawnAt`, reject already withdrawn / hired / rejected applications, make the request body optional
+- [ ] `deleteApplication` endpoint is mapped as `@PatchMapping("/{id}")` with a request body; use `@DeleteMapping("/{id}")` without a body, and decide whether delete should be allowed (notes reference the application, so deleting one with notes fails on the foreign key)
+- [ ] Add a unique constraint on (`candidateId`, `jobId`) so concurrent requests can't create duplicates; decide whether re-applying after withdrawing is allowed
+- [ ] Return `201 Created` from `POST /api/applications`; add pagination for list endpoints; avoid per-application note queries (N+1)
+- [ ] Add `aiScore` and `aiShortlistStatus` to `ApplicationResponse`; remove the unused `java.awt.print.Pageable` import in `ApplicationRepository`
+- [ ] AI screening: score resumes against jobs with Gemini via `ai-service` and set `aiScore` / `aiShortlistStatus`
+- [ ] Kafka events: `application.submitted`, `application.status.changed` (consumed by notification-service)
+- [ ] Replace `X-User-Id` header with JWT / gateway user id, and role checks (candidate vs employer)
 
 ### Notification Service (new module)
 - [ ] Kafka consumer for `application.submitted`, `job.posted`, etc.
@@ -394,5 +421,21 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `assertOwner()` is still copy-pasted in each service.
   - `buildFullResponse()` does 7 queries per resume, and `getMyResumes()` repeats it per resume.
   - Completion score is always 0; `visibility` is not enforced yet; confirm the language service and controller.
+
+### 2026-10-17
+- Built `job-portal-application-service`:
+  - `Application` and `ApplicationNote` entities, `ApplicationStatus` and `AiShortlistStatus` enums.
+  - `CreateApplicationRequest`, `UpdateApplicationStatusRequest`, `WithdrawApplicationRequest`, `CompanyApplicationFilterRequest`, `AddApplicationNoteRequest`, `ApplicationResponse`, `ApplicationNoteResponse`, `ApplicationMapper`.
+  - `ApplicationRepository`, `ApplicationNoteRepository` and `ApplicationSpecification` (filters by job, status, starred, AI shortlist status, minimum AI score; sorting by applied date or AI score).
+  - `ApplicationServiceImpl`: apply (duplicate check), get by id, my applications, applications for a job / company, update status, withdraw, toggle star, delete.
+  - `ApplicationNoteServiceImpl`: add, list, delete recruiter notes.
+  - `ApplicationController` (`/api/applications`) and `ApplicationNoteController` (`/api/applications/{applicationId}/notes`).
+- Tested the application APIs successfully.
+- **To fix next:**
+  - Hardcoded `companyId` / `employerId` (`1L`) and placeholder job / company / candidate in responses (job is built from the application id); integrate job, company, user and resume services.
+  - Internal notes are returned to candidates and the notes list / application detail have no access checks; `deleteNote` doesn't check the note belongs to the application.
+  - `isStarted` / `isStarred` mismatch breaks the starred filter and can NPE when the filter is omitted; `toggleStar` NPEs on new applications (null default); `toNoteResponse` uses the wrong id.
+  - `coverLetter` needs a `TEXT` column (validated to 3000 characters, column is 255); status transition rules, `withdrawnAt`, delete endpoint mapping (`@PatchMapping` with a body), unique (`candidateId`, `jobId`) constraint.
+  - AI screening and Kafka events are still to do.
 
 <!-- Add new dated entries above this line as you make progress -->

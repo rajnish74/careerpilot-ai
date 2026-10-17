@@ -65,7 +65,7 @@ job-portal-system (parent pom)
     ├── job-portal-company-service        → Company profiles & management (in progress)
     ├── job-portal-job-service            → Job postings & search (in progress)
     ├── job-portal-resume-service         → Resume builder & management (in progress)
-    ├── application-service               → Applications & tracking (planned)
+    ├── job-portal-application-service    → Applications & tracking (in progress)
     ├── ai-service                        → Gemini AI integration (planned)
     └── notification-service              → Kafka-driven notifications (planned)
 ```
@@ -126,7 +126,7 @@ job-portal-system (parent pom)
 | `job-portal-company-service` | Company profiles & management | 🟡 In progress (entity, DTOs, repository, service, mapper & REST endpoints done; security & gateway integration pending) |
 | `job-portal-job-service` | Job postings, search, filters | 🟡 In progress (jobs, categories, skills & tags linked and tested; company integration, search filters & security pending) |
 | `job-portal-resume-service` | Resume builder & management | 🟡 In progress (all resume sections built & tested; visibility rules, completion score & security pending) |
-| `application-service` | Job applications, tracking | 🔴 Not started |
+| `job-portal-application-service` | Job applications, tracking, recruiter notes | 🟡 In progress (apply, status, withdraw, notes & filters built and tested; cross-service data, AI screening & Kafka pending) |
 | `ai-service` | Gemini AI integration | 🔴 Not started |
 | `notification-service` | Kafka-based notifications | 🔴 Not started |
 | Frontend (React) | User/recruiter dashboards | 🔴 Not started |
@@ -173,7 +173,7 @@ npm run dev
 - [x] Implement JWT auth in `job-portal-user-service`
 - [ ] Add PostgreSQL entities: User, Profile, Role
 - [ ] Build `job-portal-job-service` (CRUD + search)
-- [ ] Build `application-service` + Kafka events
+- [ ] Build `job-portal-application-service` + Kafka events (service built; Kafka events pending)
 - [ ] Integrate Redis caching
 - [ ] Add Resilience4j to inter-service calls
 - [ ] Integrate Gemini AI for resume parsing & job matching
