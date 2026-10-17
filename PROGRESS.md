@@ -30,7 +30,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
 - [ ] `job-portal-preferences-service` — module created, saved jobs built; fixes, testing and other preference features pending
 - [ ] `job-portal-cloud` — Eureka registry and API gateway (routes + JWT) built and tested; gateway hardening and config-server pending
-- [ ] `job-portal-ai-service` — Gemini API integration in progress; features, gateway route and hardening pending
+- [ ] `job-portal-ai-service` — Gemini client and AI resume tools (summary, bullets, improvements, career feedback) built; testing, gateway route, validation and hardening pending
 
 ---
 
@@ -232,7 +232,18 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Email/notification dispatch
 
 ### AI Service (new module — `job-portal-ai-service`)
-- [x] Module started; Gemini API integration in progress (calling Gemini with an API key to get answers)
+- [x] Module started; Gemini client (`GeminiClient.generateText` / `generateJson`) integrated with an API key
+- [x] `ResumeAiService`: professional summary, work experience bullet points, resume improvement suggestions, career feedback (profile strength, shortlisting issues, target jobs)
+- [x] `ResumeAiController` (`/api/ai/resume`): `POST /summary`, `/experience-bullets`, `/improvements`, `/career-feedback`
+- [x] DTOs: `ResumeSummaryRequest`, `WorkExperienceBulletRequest` / `Response`, `ResumeImprovementRequest` / `Response`, `CareerFeedbackRequest` / `Response`, `AiTextResponse`
+- [ ] Test the AI resume endpoints
+- [ ] Add `@Valid` on the controller request bodies (the `@NotBlank` constraints are currently ignored) and `@Size` limits on resume content / descriptions to control cost and abuse
+- [ ] Add `@NoArgsConstructor` / `@AllArgsConstructor` to `CareerFeedbackRequest`, `WorkExperienceBulletRequest` and `WorkExperienceBulletResponse` (`@Data @Builder` only: Jackson can't create them, so request parsing and parsing Gemini's JSON will fail); add `@JsonIgnoreProperties(ignoreUnknown = true)` to all AI response classes
+- [ ] Fix the summary prompt formatting: `jobTitle + "at" + company` is missing spaces and experiences are joined with `": "`; rename the `filedOfStudy` field to `fieldOfStudy` (it is part of the request JSON, so fix before the frontend uses it)
+- [ ] Prompt-injection hardening: wrap user text in delimiters (e.g. `<resume>...</resume>`) and tell the model to treat it as data only
+- [ ] Validate and clamp Gemini output (`overallScore` / `profileStrength` 0-100, list sizes, normalized priority values such as `HIGH` / `MEDIUM` / `LOW`); return a clear error when the JSON is invalid
+- [ ] Option: accept a `resumeId` and load the structured resume from resume-service (owner-checked) instead of free text
+- [ ] Make `SYSTEM_PROMPT` a `private static final` constant
 - [ ] Keep the Gemini API key out of git: read it from an environment variable / config server (not `application.yaml` in the repo), add the key file / `.env` to `.gitignore`, and rotate the key if it was ever committed
 - [ ] Make the model name, timeouts and token limits configurable properties
 - [ ] Error handling for Gemini failures (quota / rate limit, timeouts, blocked or empty responses) with Resilience4j retry / circuit breaker / fallback
@@ -475,6 +486,10 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `SavedJobServiceImpl`: save (duplicate check), unsave (ownership check), list, is-saved.
   - `SavedJobController` (`/api/preferences/saved-jobs`) with save, list, check, delete and a `/test` endpoint.
 - Started `job-portal-ai-service`: integrating the Google Gemini API (API key) to get AI-generated answers; this is the base for resume parsing, job matching and the candidate chatbot.
+- Built the AI resume tools in `job-portal-ai-service`:
+  - `ResumeAiService` with prompts for a professional summary, work experience bullet points (JSON), resume improvement suggestions (JSON) and career feedback (JSON), using `GeminiClient.generateText` / `generateJson`.
+  - `ResumeAiController` (`/api/ai/resume`) with `POST /summary`, `/experience-bullets`, `/improvements`, `/career-feedback`.
+  - Request / response DTOs for each tool.
 - Set up the API gateway (Spring Cloud Gateway Server MVC) in `job-portal-cloud`:
   - `RouterConfig` with Eureka load-balanced routes for user, company, job, application, resume and preferences services.
   - Public `/auth/**` route; JWT-protected routes for all `/api/**` paths; `/api/admin/**` requires `ROLE_ADMIN`.
@@ -484,6 +499,7 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - Created the Eureka Server module (`job-portal-registry-service`) in `job-portal-cloud`.
   - Set up Eureka client registration for all services (user, company, job, resume, application, preferences).
 - **To fix next:**
+  - AI resume tools: `@Valid` and size limits on the request bodies, missing no-args constructors on three DTOs (`@Data @Builder` only), `"at"` spacing bug in the summary prompt, `filedOfStudy` typo in the request JSON, prompt-injection delimiters, output validation, then test the endpoints through the gateway.
   - AI service: keep the Gemini API key out of the repository (env var / config server), handle Gemini errors and rate limits, register with Eureka and add the `/api/ai/**` gateway route, then build resume parsing and job matching.
   - Gateway: client-supplied `X-User-*` headers are not removed before the verified ones are added (spoofable), admin-only endpoints are reachable by any authenticated user through the normal routes, the preferences route id (`job-portal-job-preferences`) doesn't follow the naming of the other services, no CORS yet, and the JWT secret must be shared via config.
   - Confirm all services register and show as `UP` in the Eureka dashboard; then replace hardcoded ids and placeholder data with service-to-service calls by service name.
