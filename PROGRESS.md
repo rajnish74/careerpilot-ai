@@ -29,6 +29,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-resume-service` — all resume sections built and tested; read-access rules, visibility, completion score and security pending
 - [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
 - [ ] `job-portal-preferences-service` — module created, saved jobs built; fixes, testing and other preference features pending
+- [ ] `job-portal-cloud` — Eureka registry done; config-server and api-gateway pending
 
 ---
 
@@ -36,7 +37,10 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 
 ### Infra (`job-portal-cloud`)
 - [ ] `config-server` submodule (Spring Cloud Config)
-- [ ] `discovery-server` submodule (Eureka)
+- [x] Eureka service registry created in `cloud` (`job-portal-registry-service`, Eureka Server)
+- [x] Eureka client setup for all services (user, company, job, resume, application, preferences)
+- [ ] Verify every service shows as `UP` in the Eureka dashboard, each with a unique `spring.application.name` and port
+- [ ] Use service names instead of hardcoded ids/URLs for service-to-service calls (OpenFeign + Resilience4j): application-service → job / resume / company / user, job-service → company-service, preferences-service → job-service
 - [ ] `api-gateway` submodule (Spring Cloud Gateway)
 
 ### User Service
@@ -449,7 +453,11 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `SavedJob` entity, `SavedJobRequest`, `SavedJobResponse`, `SavedJobRepository`, `PreferenceMapper`.
   - `SavedJobServiceImpl`: save (duplicate check), unsave (ownership check), list, is-saved.
   - `SavedJobController` (`/api/preferences/saved-jobs`) with save, list, check, delete and a `/test` endpoint.
+- Set up service discovery:
+  - Created the Eureka Server module (`job-portal-registry-service`) in `job-portal-cloud`.
+  - Set up Eureka client registration for all services (user, company, job, resume, application, preferences).
 - **To fix next:**
+  - Confirm all services register and show as `UP` in the Eureka dashboard; then replace hardcoded ids and placeholder data with service-to-service calls by service name.
   - `SavedJobController.unsavedJob` passes `(savedJobId, candidateId)` but the service expects `(candidateId, savedJobId)`: the arguments are swapped. Also missing `@NotNull` / `@Valid` on `jobId`, no job existence check, no unique constraint on (`candidateId`, `jobId`).
   - Hardcoded `companyId` / `employerId` (`1L`) and placeholder job / company / candidate in responses (job is built from the application id); integrate job, company, user and resume services.
   - Internal notes are returned to candidates and the notes list / application detail have no access checks; `deleteNote` doesn't check the note belongs to the application.

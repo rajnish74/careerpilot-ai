@@ -55,7 +55,7 @@ job-portal-system (parent pom)
 │
 ├── cloud [job-portal-cloud]              → Infrastructure services
 │   ├── config-server                     → Centralized configuration (planned)
-│   ├── discovery-server (Eureka)         → Service Registry (planned)
+│   ├── job-portal-registry-service       → Eureka Server / Service Registry (done)
 │   └── api-gateway                       → Spring Cloud Gateway (planned)
 │
 ├── common-lib [job-portal-common]        → Shared DTOs, enums, exceptions, utils
@@ -121,7 +121,7 @@ job-portal-system (parent pom)
 
 | Module | Description | Status |
 |---|---|---|
-| `job-portal-cloud` | Infra module (config server, Eureka, gateway) | 🔴 Not started |
+| `job-portal-cloud` | Infra module (config server, Eureka, gateway) | 🟡 In progress (Eureka registry done; config server & gateway pending) |
 | `job-portal-common` | Shared DTOs, enums, exceptions | 🟡 Scaffolded |
 | `job-portal-user-service` | Auth, JWT, user profile | 🟡 In progress (signup, login, JWT, profile & admin endpoints done; JWT validation filter & role checks pending) |
 | `job-portal-company-service` | Company profiles & management | 🟡 In progress (entity, DTOs, repository, service, mapper & REST endpoints done; security & gateway integration pending) |
@@ -170,7 +170,8 @@ npm run dev
 ## 🗺️ Roadmap
 
 - [ ] Fix pom.xml dependency issues (`spring-boot-starter-web`, `spring-boot-starter-test`, `jib-maven-plugin`)
-- [ ] Set up `config-server` + `discovery-server` (Eureka) in `job-portal-cloud`
+- [x] Set up `discovery-server` (Eureka) in `job-portal-cloud` and register all services
+- [ ] Set up `config-server` in `job-portal-cloud`
 - [ ] Set up `api-gateway` with routing to user-service
 - [x] Implement JWT auth in `job-portal-user-service`
 - [ ] Add PostgreSQL entities: User, Profile, Role

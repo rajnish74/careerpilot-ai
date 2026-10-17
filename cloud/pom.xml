@@ -14,5 +14,9 @@
     <name>job-portal-cloud</name>
     <description>Cloud Infrastructure Module</description>
 
+    <modules>
+        <module>job-portal-service-registry</module>
+    </modules>
+
 
 </project>
