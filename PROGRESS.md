@@ -29,7 +29,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-resume-service` — all resume sections built and tested; read-access rules, visibility, completion score and security pending
 - [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
 - [ ] `job-portal-preferences-service` — module created, saved jobs built; fixes, testing and other preference features pending
-- [ ] `job-portal-cloud` — Eureka registry done; config-server and api-gateway pending
+- [ ] `job-portal-cloud` — Eureka registry and API gateway (routes + JWT) built and tested; gateway hardening and config-server pending
 
 ---
 
@@ -41,7 +41,20 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [x] Eureka client setup for all services (user, company, job, resume, application, preferences)
 - [ ] Verify every service shows as `UP` in the Eureka dashboard, each with a unique `spring.application.name` and port
 - [ ] Use service names instead of hardcoded ids/URLs for service-to-service calls (OpenFeign + Resilience4j): application-service → job / resume / company / user, job-service → company-service, preferences-service → job-service
-- [ ] `api-gateway` submodule (Spring Cloud Gateway)
+- [x] `api-gateway` submodule (Spring Cloud Gateway Server MVC) with Eureka load-balanced routes (`RouterConfig`)
+- [x] Public route: `/auth/**` → `job-portal-user-service`
+- [x] JWT-protected routes: `/api/users/**` (user-service), `/api/companies/**` (company-service), `/api/jobs/**`, `/api/job-categories/**`, `/api/job-skills/**`, `/api/job-tags/**` (job-service), `/api/applications/**` (application-service), `/api/resumes/**` (resume-service), `/api/preferences/**` (preferences-service)
+- [x] Admin route `/api/admin/**` → user-service, requires JWT and `ROLE_ADMIN`
+- [x] Gateway JWT filter validates the token and forwards `X-User-Id`, `X-User-Email` and `X-User-Role` to the services
+- [x] Tested all APIs through the gateway successfully
+- [ ] **Gateway header spoofing:** the filter uses `.header(...)`, which adds to headers instead of replacing them, so a client can still send its own `X-User-Id` / `X-User-Email` / `X-User-Role`; remove the incoming copies and set the verified values (`.headers(h -> { h.remove(..); h.set(..); })`)
+- [ ] Role checks for admin actions that are reachable under normal routes: `/api/users` (list), `/api/users/{id}/suspend|activate`, `DELETE /api/users/{id}`, `/api/companies/{id}/verify|deactivate`, `/api/jobs/admin`, category / skill / tag create-update-delete; add role rules per route / method at the gateway (and keep `@PreAuthorize` checks in the services)
+- [ ] `/api/admin/**` currently routes to user-service but no controller uses that prefix; move the admin endpoints there or remove the route
+- [ ] Preferences route uses the service id `job-portal-job-preferences`; make it match the registered `spring.application.name` of the preferences service (the other services use `job-portal-<name>-service`)
+- [ ] Make `requireRole` an exact role match (it uses `contains` on a comma-separated string)
+- [ ] CORS configuration at the gateway for the React frontend
+- [ ] Share the JWT secret between user-service and gateway through configuration / env var, not a hardcoded constant; services must not be reachable directly (only through the gateway) in Docker / production
+- [ ] Gateway resilience: Resilience4j circuit breaker / fallbacks and rate limiting
 
 ### User Service
 - [x] User entity + Postgres schema (`User`, `UserRole`, `UserStatus`)
@@ -225,7 +238,7 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 
 ### Cross-cutting
 - [ ] Redis caching (job listings, user sessions)
-- [ ] Resilience4j (circuit breaker on gateway → services)
+- [ ] Resilience4j (circuit breaker on gateway → services; also on OpenFeign calls between services)
 - [ ] Centralized logging/tracing (optional: ELK / Zipkin)
 - [ ] Global exception handling in `common-lib`
 - [ ] Common DTOs/enums in `common-lib` (currently empty) — `ApiResponse` and enums like `JobType` are now duplicated across job-service and resume-service; move shared ones here
@@ -453,10 +466,16 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `SavedJob` entity, `SavedJobRequest`, `SavedJobResponse`, `SavedJobRepository`, `PreferenceMapper`.
   - `SavedJobServiceImpl`: save (duplicate check), unsave (ownership check), list, is-saved.
   - `SavedJobController` (`/api/preferences/saved-jobs`) with save, list, check, delete and a `/test` endpoint.
+- Set up the API gateway (Spring Cloud Gateway Server MVC) in `job-portal-cloud`:
+  - `RouterConfig` with Eureka load-balanced routes for user, company, job, application, resume and preferences services.
+  - Public `/auth/**` route; JWT-protected routes for all `/api/**` paths; `/api/admin/**` requires `ROLE_ADMIN`.
+  - JWT filter validates the token and forwards `X-User-Id`, `X-User-Email`, `X-User-Role` to the services.
+  - Tested all APIs through the gateway successfully.
 - Set up service discovery:
   - Created the Eureka Server module (`job-portal-registry-service`) in `job-portal-cloud`.
   - Set up Eureka client registration for all services (user, company, job, resume, application, preferences).
 - **To fix next:**
+  - Gateway: client-supplied `X-User-*` headers are not removed before the verified ones are added (spoofable), admin-only endpoints are reachable by any authenticated user through the normal routes, the preferences route id (`job-portal-job-preferences`) doesn't follow the naming of the other services, no CORS yet, and the JWT secret must be shared via config.
   - Confirm all services register and show as `UP` in the Eureka dashboard; then replace hardcoded ids and placeholder data with service-to-service calls by service name.
   - `SavedJobController.unsavedJob` passes `(savedJobId, candidateId)` but the service expects `(candidateId, savedJobId)`: the arguments are swapped. Also missing `@NotNull` / `@Valid` on `jobId`, no job existence check, no unique constraint on (`candidateId`, `jobId`).
   - Hardcoded `companyId` / `employerId` (`1L`) and placeholder job / company / candidate in responses (job is built from the application id); integrate job, company, user and resume services.

@@ -11,6 +11,8 @@
         <option value="$PROJECT_DIR$/services/job-portal-application-service/pom.xml" />
         <option value="$PROJECT_DIR$/services/job-portal-preferences-service/pom.xml" />
         <option value="$PROJECT_DIR$/cloud/job-portal-service-registry/pom.xml" />
+        <option value="$PROJECT_DIR$/cloud/job-portal-config-server/pom.xml" />
+        <option value="$PROJECT_DIR$/cloud/job-portal-api-gateway/pom.xml" />
       </list>
     </option>
   </component>
