@@ -68,7 +68,7 @@ job-portal-system (parent pom)
     ├── job-portal-application-service    → Applications & tracking (in progress)
     ├── job-portal-preferences-service    → Saved jobs & candidate preferences (in progress)
     ├── job-portal-ai-service             → Gemini AI integration (in progress)
-    └── notification-service              → Kafka-driven notifications (planned)
+    └── job-portal-notification-service   → Kafka-driven notifications (in progress)
 ```
 
 **Communication patterns:**
@@ -130,7 +130,7 @@ job-portal-system (parent pom)
 | `job-portal-application-service` | Job applications, tracking, recruiter notes | 🟡 In progress (apply, status, withdraw, notes & filters built and tested; cross-service data, AI screening & Kafka pending) |
 | `job-portal-preferences-service` | Saved jobs & candidate preferences | 🟡 In progress (saved jobs built; fixes & testing pending) |
 | `job-portal-ai-service` | Gemini AI integration | 🟡 In progress (Gemini client & AI tools built for resumes, applications, jobs & search; integration, hardening & chatbot pending) |
-| `notification-service` | Kafka-based notifications | 🔴 Not started |
+| `job-portal-notification-service` | Kafka-based notifications | 🟡 In progress (module created; Kafka consumers & delivery pending) |
 | Frontend (React) | User/recruiter dashboards | 🔴 Not started |
 
 Full task-by-task tracking lives in [`progress.md`](./progress.md).
@@ -180,7 +180,8 @@ npm run dev
 - [ ] Integrate Redis caching
 - [ ] Add Resilience4j to inter-service calls
 - [ ] Integrate Gemini AI for resume parsing & job matching
-- [ ] Dockerize all services + docker-compose.yml
+- [x] Configure `docker-compose.yml` for local infrastructure
+- [ ] Dockerize all services and add them to docker-compose.yml
 - [ ] Build React 19 frontend (Redux Toolkit + Tailwind + Shadcn)
 - [ ] Deploy (CI/CD pipeline)
 

@@ -30,6 +30,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
 - [ ] `job-portal-preferences-service` — module created, saved jobs built; fixes, testing and other preference features pending
 - [ ] `job-portal-cloud` — Eureka registry and API gateway (routes + JWT) built and tested; gateway hardening and config-server pending
+- [ ] `job-portal-notification-service` — module created; Kafka consumers, notification model and delivery pending
 - [ ] `job-portal-ai-service` — Gemini client and AI tools for resumes, applications, jobs and search built; testing, gateway route, enum alignment, validation, rate limiting and integration with other services pending
 
 ---
@@ -227,9 +228,16 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Other preference features (to be decided, e.g. preferred roles / locations / salary, job alerts)
 - [ ] Replace `X-User-Id` header with JWT / gateway user id
 
-### Notification Service (new module)
-- [ ] Kafka consumer for `application.submitted`, `job.posted`, etc.
-- [ ] Email/notification dispatch
+### Notification Service (new module — `job-portal-notification-service`)
+- [x] Module created
+- [ ] Register with Eureka and add a gateway route (`/api/notifications/**`, JWT-protected)
+- [ ] Kafka consumer setup (bootstrap servers, group id, error handling / retry / dead-letter topic)
+- [ ] Consume `application.submitted` and `application.status.changed` (from application-service) and `job.posted` (from job-service)
+- [ ] `Notification` entity (userId, type, title, message, read flag, createdAt) + Postgres schema
+- [ ] Endpoints: list my notifications, unread count, mark as read / mark all as read
+- [ ] Email / in-app delivery (SMTP or a provider); keep credentials out of git
+- [ ] Define the event payloads (shared DTOs in `common-lib`) and the Kafka topics list
+- [ ] Idempotent consumers (an event delivered twice must not create two notifications)
 
 ### AI Service (new module — `job-portal-ai-service`)
 - [x] Module started; Gemini client (`GeminiClient.generateText` / `generateJson`) integrated with an API key
@@ -281,7 +289,11 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 
 ### DevOps
 - [ ] Dockerfile per service
-- [ ] `docker-compose.yml` (Postgres, Redis, Kafka, Zookeeper, all services)
+- [x] `docker-compose.yml` configured for local infrastructure
+- [ ] Confirm the compose file covers everything the services need (Postgres with a database per service, Redis, Kafka) with named volumes, healthchecks and a shared network
+- [ ] Keep passwords and secrets (DB password, JWT secret, Gemini API key) in a git-ignored `.env` file, and commit a `.env.example` instead
+- [ ] Add the application services (registry, gateway, user, company, job, resume, application, preferences, ai, notification) to compose with `depends_on` health conditions and Eureka / Kafka / DB hostnames from the compose network (not `localhost`)
+- [ ] Only expose the gateway port (and the Eureka dashboard in dev); keep the service ports internal
 - [ ] Environment-based config (dev/prod profiles)
 - [ ] CI/CD pipeline (GitHub Actions)
 
@@ -534,6 +546,8 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - Search tools: `SearchAiService` (natural-language search enhancement, job alert criteria suggestion) and `AiSearchController` (`/api/ai/search`).
   - Request / response DTOs for each tool (`CoverLetterRequest`, `ScreeningScoreRequest` / `Response`, `SkillGapRequest` / `SkillsGapResponse`, `JobDescriptionRequest`, `SalaryRangeRequest` / `Response`, `SearchEnhancedRequest` / `SearchEnhanceResponse`, `JobAlertSuggestRequest` / `Response`).
   - `@Valid` is now used on the request bodies of the new controllers.
+- Configured the Docker Compose file for the project's local infrastructure.
+- Created `job-portal-notification-service`.
 - **To fix next:**
   - Enum values in the search / alert prompts don't match the real enums (`INTERNSHIP` vs `INTERN`, `ON_SITE` vs `ONSITE`, `ENTRY` / `MID` / `SENIOR` vs `ENTRY_LEVEL` / `MID_LEVEL` / `SENIOR_LEVEL`); share the enums through `common-lib`.
   - `SkillsGapResponse.LearningRecommendation.skills` vs JSON key `skill`; `/screening-core` typo; `skills-recommendation` passes `category` as description; free-text `GET` endpoints should be `POST`.
