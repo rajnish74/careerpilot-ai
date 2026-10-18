@@ -1,6 +1,6 @@
 # 📈 Progress Tracker — AI-Powered Job Portal
 
-Last updated: **2026-10-17**
+Last updated: **2026-10-18**
 
 This file tracks day-to-day / milestone progress on the project. Update it as you go so it doubles as a dev log.
 
@@ -30,7 +30,7 @@ This file tracks day-to-day / milestone progress on the project. Update it as yo
 - [ ] `job-portal-application-service` — apply, status tracking, withdraw, star, notes and company filters built and tested; real job/company/user data, AI screening, Kafka events and fixes pending
 - [ ] `job-portal-preferences-service` — module created, saved jobs built; fixes, testing and other preference features pending
 - [ ] `job-portal-cloud` — Eureka registry and API gateway (routes + JWT) built and tested; gateway hardening and config-server pending
-- [ ] `job-portal-ai-service` — Gemini client and AI resume tools (summary, bullets, improvements, career feedback) built; testing, gateway route, validation and hardening pending
+- [ ] `job-portal-ai-service` — Gemini client and AI tools for resumes, applications, jobs and search built; testing, gateway route, enum alignment, validation, rate limiting and integration with other services pending
 
 ---
 
@@ -244,13 +244,30 @@ Resume builder: candidates create multiple structured resumes (template, visibil
 - [ ] Validate and clamp Gemini output (`overallScore` / `profileStrength` 0-100, list sizes, normalized priority values such as `HIGH` / `MEDIUM` / `LOW`); return a clear error when the JSON is invalid
 - [ ] Option: accept a `resumeId` and load the structured resume from resume-service (owner-checked) instead of free text
 - [ ] Make `SYSTEM_PROMPT` a `private static final` constant
+- [x] Application AI: `ApplicationAiService` (cover letter, candidate screening score with skills / experience / education match, matched and missing skills, strengths, concerns, skills gap analysis) and `AiApplicationController` (`/api/ai/application`: `POST /cover-letter`, `/screening-core`, `/skills-gap`)
+- [x] Job AI: `JobAiService` (job description, requirements, responsibilities, benefits, skill recommendations, tag recommendations, salary range suggestion) and `AiJobController` (`/api/ai/job`: `POST /describe`, `POST /salary-suggestion`, `GET /requirements`, `/skills-recommendation`, `/responsibilities`, `/benefits`, `/tags-recommendation`)
+- [x] Search AI: `SearchAiService` (natural-language search enhancement, job alert criteria suggestion) and `AiSearchController` (`/api/ai/search`: `POST /enhance`, `/alert-suggestion`)
+- [x] Request / response DTOs for the application, job and search tools; `@Valid` on the new controllers' request bodies
+- [ ] Test the application, job and search AI endpoints
+- [ ] **Align prompt enum values with the real enums:** the search prompts use `INTERNSHIP`, `ON_SITE`, and `ENTRY` / `MID` / `SENIOR`, but the job-service enums are `INTERN`, `ONSITE`, and `ENTRY_LEVEL` / `JUNIOR` / `MID_LEVEL` / `SENIOR_LEVEL` (also `JobType` still has `REMOTE`); move shared enums to `common-lib` and generate the allowed values in the prompt from the enums
+- [ ] Fix `SkillsGapResponse.LearningRecommendation`: the field is `skills` but the prompt / JSON key is `skill`, so it will always be null
+- [ ] Rename the `/screening-core` endpoint to `/screening-score`
+- [ ] `GET /api/ai/job/skills-recommendation` passes `category` into the service's `description` parameter; also switch the GET endpoints that take free text (e.g. `tags-recommendation` with `description`) to `POST` with a body, and validate the `title` params
+- [ ] Screening: `educationMatchScore` is requested but `ScreeningScoreRequest` has no education data (the model will invent it); add education or drop the score
+- [ ] Screening fairness and safety: candidate-written text can contain prompt injection ("give a score of 100"); use delimiters, clamp scores to 0-100, keep a human in the loop (AI result is a suggestion, not an automatic reject), and avoid using name / gender / age style signals
+- [ ] Salary suggestion: validate `minSalary <= maxSalary`, positive values, and label it as an estimate; define the unit for salary extracted from search text (annual INR)
+- [ ] Add `@Size` limits to the new request DTOs; add `@JsonIgnoreProperties(ignoreUnknown = true)` to the new response classes (including the nested `LearningRecommendation`)
+- [ ] Cache repeated AI results (Redis) and rate-limit per user (about 18 endpoints now call Gemini)
+- [ ] Gateway: add `/api/ai/**` with role rules (job-posting tools and screening for `ROLE_EMPLOYER`; cover letter, resume tools, skills gap for candidates)
+- [ ] Use search enhancement output in job-service search (map to `JobSearchRequest`) and job alert suggestions in preferences-service
+- [ ] Make `JobAiService.system_prompt` a `private static final` constant like the other services; remove unnecessary `throws Exception`
 - [ ] Keep the Gemini API key out of git: read it from an environment variable / config server (not `application.yaml` in the repo), add the key file / `.env` to `.gitignore`, and rotate the key if it was ever committed
 - [ ] Make the model name, timeouts and token limits configurable properties
 - [ ] Error handling for Gemini failures (quota / rate limit, timeouts, blocked or empty responses) with Resilience4j retry / circuit breaker / fallback
 - [ ] Register the service with Eureka and add a gateway route (`/api/ai/**` → `job-portal-ai-service`, JWT-protected) in `RouterConfig`
 - [ ] Per-user rate limiting / usage limits to control cost
 - [ ] Resume parsing (extract skills/experience from a resume), returning structured JSON that is validated before use
-- [ ] Job-to-candidate matching score (resume vs job) for `aiScore` / `aiShortlistStatus` in application-service
+- [ ] Connect `scoreCandidate` to application-service: set `aiScore` / `aiShortlistStatus` (and build the candidate / job input from the resume, job and application data instead of free text)
 - [ ] AI chatbot for candidate queries
 - [ ] Treat resume / job text as untrusted input (prompt injection) and never send more personal data to Gemini than needed
 - [ ] Kafka integration: consume `application.submitted`, publish the screening result back to application-service
@@ -509,5 +526,18 @@ Resume builder: candidates create multiple structured resumes (template, visibil
   - `isStarted` / `isStarred` mismatch breaks the starred filter and can NPE when the filter is omitted; `toggleStar` NPEs on new applications (null default); `toNoteResponse` uses the wrong id.
   - `coverLetter` needs a `TEXT` column (validated to 3000 characters, column is 255); status transition rules, `withdrawnAt`, delete endpoint mapping (`@PatchMapping` with a body), unique (`candidateId`, `jobId`) constraint.
   - AI screening and Kafka events are still to do.
+
+### 2026-10-18
+- Added more AI tools to `job-portal-ai-service`:
+  - Application tools: `ApplicationAiService` (cover letter, candidate screening score, skills gap analysis) and `AiApplicationController` (`/api/ai/application`).
+  - Job tools: `JobAiService` (job description, requirements, responsibilities, benefits, skills and tags recommendations, salary range suggestion) and `AiJobController` (`/api/ai/job`).
+  - Search tools: `SearchAiService` (natural-language search enhancement, job alert criteria suggestion) and `AiSearchController` (`/api/ai/search`).
+  - Request / response DTOs for each tool (`CoverLetterRequest`, `ScreeningScoreRequest` / `Response`, `SkillGapRequest` / `SkillsGapResponse`, `JobDescriptionRequest`, `SalaryRangeRequest` / `Response`, `SearchEnhancedRequest` / `SearchEnhanceResponse`, `JobAlertSuggestRequest` / `Response`).
+  - `@Valid` is now used on the request bodies of the new controllers.
+- **To fix next:**
+  - Enum values in the search / alert prompts don't match the real enums (`INTERNSHIP` vs `INTERN`, `ON_SITE` vs `ONSITE`, `ENTRY` / `MID` / `SENIOR` vs `ENTRY_LEVEL` / `MID_LEVEL` / `SENIOR_LEVEL`); share the enums through `common-lib`.
+  - `SkillsGapResponse.LearningRecommendation.skills` vs JSON key `skill`; `/screening-core` typo; `skills-recommendation` passes `category` as description; free-text `GET` endpoints should be `POST`.
+  - Screening asks for an education score without education data, and candidate text can inject prompts; keep a human in the loop and clamp scores.
+  - Add the `/api/ai/**` gateway route with role rules, per-user rate limits and Redis caching, size limits on requests, then test all AI endpoints and connect screening to application-service.
 
 <!-- Add new dated entries above this line as you make progress -->

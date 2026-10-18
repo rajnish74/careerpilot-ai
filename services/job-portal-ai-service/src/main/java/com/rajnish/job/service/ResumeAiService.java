@@ -122,48 +122,65 @@ public class ResumeAiService {
 
     public CareerFeedbackResponse generateCareerFeedback(CareerFeedbackRequest request){
 
+
         String prompt = """
-        Analyze this resume and deliver an honest, actionable career feedback report.
+    Analyze this resume and deliver an honest, actionable career feedback report.
 
-        Target Job Title (if provided): %s
-        Resume Content:
-        %s
+    Target Job Title (if provided): %s
 
-        {
-            "profileStrength": 65,
-            "shortlistingIssues": [
-                "Reason 1 why recruiters are skipping this profile",
-                "Reason 2",
-                "Reason 3"
-            ],
-            "improvements": [
-                {
-                    "area": "Skills | Summary | Experience | Education | Projects | General",
-                    "issue": "What specific issue exists in this area",
-                    "suggestion": "How to fix this issue with actionable advice"
-                }
-            ],
-            "targetJobs": [
-                {
-                    "jobTitle": "Recommended Job Title",
-                    "reason": "Why this role suits the current profile",
-                    "matchPercentage": 85
-                }
-            ],
-            "overallSummary": "2-3 sentences of honest, encouraging career advice"
-        }
+    Resume Content:
+    %s
 
-        Rules:
-        - profileStrength: integer 0-100 reflecting overall job market readiness
-        - shortlistingIssues: 3-5 candid reasons a recruiter would skip this resume
-        - improvements: 4-6 items ordered by priority descending
-        - targetJobs: 3-5 realistic job titles matching current skills and experience level
-        - Be specific — mention actual skills, tools, or sections by name
-        - Provide honest, actionable feedback based on the resume content
-        - Do not invent skills, experience, or achievements not present in the resume
-        - Return ONLY valid JSON, with no explanation or markdown fences
-        """.formatted(
-                request.getTargetJobTitle() != null ? request.getTargetJobTitle() : "Not Specified",
+    Return JSON with exactly this structure:
+    {
+        "profileStrength": 65,
+        "shortlistingIssues": [
+            "Reason 1 why recruiters may skip this profile",
+            "Reason 2",
+            "Reason 3"
+        ],
+        "improvements": [
+            {
+                "area": "Skills",
+                "issue": "Specific issue identified in the resume",
+                "action": "A concrete, actionable step to fix the issue",
+                "priority": "HIGH"
+            },
+            {
+                "area": "Experience",
+                "issue": "Specific issue identified in the resume",
+                "action": "A concrete, actionable step to fix the issue",
+                "priority": "MEDIUM"
+            }
+        ],
+        "targetJob": [
+            {
+                "jobTitle": "Recommended Job Title",
+                "reason": "Why this role suits the current profile",
+                "skillMatch": "Explain the match using available resume evidence"
+            }
+        ],
+        "overallSummary": "2-3 sentences of honest career advice"
+    }
+
+    Rules:
+    - profileStrength must be an integer from 0 to 100.
+    - shortlistingIssues must contain 3-5 specific issues.
+    - improvements must contain 4-6 items, ordered from highest to lowest priority.
+    - Every improvement MUST include all four non-null fields:
+      area, issue, action, priority.
+    - Use HIGH, MEDIUM, or LOW for priority.
+    - The action field MUST contain a specific, practical recommendation.
+    - Do not use "suggestion" as a JSON key. Use "action" only.
+    - targetJob must contain 3-5 realistic job titles.
+    - Each targetJob item MUST contain jobTitle, reason, and skillMatch.
+    - Use only evidence supported by the resume. Do not invent skills,
+      experience, achievements, or performance metrics.
+    - Return ONLY valid JSON. No markdown fences or explanations.
+    """.formatted(
+                request.getTargetJobTitle() != null
+                        ? request.getTargetJobTitle()
+                        : "Not Specified",
                 request.getResumeContent()
         );
 

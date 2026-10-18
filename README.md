@@ -129,7 +129,7 @@ job-portal-system (parent pom)
 | `job-portal-resume-service` | Resume builder & management | 🟡 In progress (all resume sections built & tested; visibility rules, completion score & security pending) |
 | `job-portal-application-service` | Job applications, tracking, recruiter notes | 🟡 In progress (apply, status, withdraw, notes & filters built and tested; cross-service data, AI screening & Kafka pending) |
 | `job-portal-preferences-service` | Saved jobs & candidate preferences | 🟡 In progress (saved jobs built; fixes & testing pending) |
-| `job-portal-ai-service` | Gemini AI integration | 🟡 In progress (Gemini client & AI resume tools built: summary, bullets, improvements, career feedback; job matching & chatbot pending) |
+| `job-portal-ai-service` | Gemini AI integration | 🟡 In progress (Gemini client & AI tools built for resumes, applications, jobs & search; integration, hardening & chatbot pending) |
 | `notification-service` | Kafka-based notifications | 🔴 Not started |
 | Frontend (React) | User/recruiter dashboards | 🔴 Not started |
 

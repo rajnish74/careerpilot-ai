@@ -10,7 +10,10 @@ public class RestClientConfig {
     @Bean
     public Client getAiClient(GeminiProperties properties) {
         return Client.builder()
-                .apiKey(properties.getKey())
+                .apiKey(properties.getApiKey())
                 .build();
     }
+
+
+
 }

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "gemini.api")
 public class GeminiProperties {
 
-    private String key;
+    private String apiKey;
     private String model;
     private int maxOutputTokens = 2048;
     private double temperature= 0.7;
