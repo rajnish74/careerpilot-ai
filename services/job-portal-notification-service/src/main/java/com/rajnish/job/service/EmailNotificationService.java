@@ -1,5 +1,6 @@
 package com.rajnish.job.service;
 
+import com.rajnish.job.event.ApplicationStatusChangedEvent;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -18,12 +19,12 @@ public class EmailNotificationService {
     private String fromEmail;
 
 
-    public void sendStatusChangedEmail() throws Exception {
+    public void sendStatusChangedEmail(ApplicationStatusChangedEvent event) throws Exception {
         try {
-            String subject = "Application update: ";
-            String body = buildStatusChangedHtml();
+            String subject = "Application update: " + event.getJobTitle() + " at"+event.getCompanyName();
+            String body = buildStatusChangedHtml(event);
 
-            String candidateEmail = "rajnish.kum41@gmail.com";
+            String candidateEmail = event.getCandidateEmail();
             sendEmail(candidateEmail, subject, body);
 
         } catch (Exception e){
@@ -41,8 +42,8 @@ public class EmailNotificationService {
         mailSender.send(mimeMessage);
     }
 
-    private String buildStatusChangedHtml(){
-        return "<h1>Application status changed</h1>";
+    private String buildStatusChangedHtml(ApplicationStatusChangedEvent event){
+        return "<h1>Application status changed"+event.getNewStatus()+"</h1>";
     }
 
 

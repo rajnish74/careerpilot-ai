@@ -7,6 +7,7 @@ import com.rajnish.job.dto.response.UserResponse;
 import com.rajnish.job.entity.Application;
 import com.rajnish.job.entity.ApplicationNote;
 import com.rajnish.job.enums.ApplicationStatus;
+import com.rajnish.job.event.ApplicationEventPublisher;
 import com.rajnish.job.mapper.ApplicationMapper;
 import com.rajnish.job.payload.CompanyApplicationFilterRequest;
 import com.rajnish.job.payload.CreateApplicationRequest;
@@ -26,6 +27,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final ApplicationNoteRepository applicationNoteRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public ApplicationResponse createApplication(Long candidateId, CreateApplicationRequest request) throws Exception {
@@ -80,12 +82,15 @@ public class ApplicationServiceImpl implements ApplicationService {
     @Override
     public ApplicationResponse updateStatus(Long applicationId, Long employerId, ApplicationStatus status) throws Exception {
         Application application = getApplicationEntity(applicationId);
+        ApplicationStatus oldStatus = application.getStatus();
         assertEmployer(application, employerId);
         if (application.getStatus() == ApplicationStatus.WITHDRAWN) {
             throw new Exception("candidate have already withdrawn");
         }
         application.setStatus(status);
         Application savedApplication = applicationRepository.save(application);
+
+        applicationEventPublisher.publishStatusChange(application, oldStatus, status, "your application status has been changed");
         return buildFullResponse(savedApplication);
     }
 

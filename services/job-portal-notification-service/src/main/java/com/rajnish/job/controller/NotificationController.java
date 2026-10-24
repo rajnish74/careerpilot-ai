@@ -13,11 +13,11 @@ public class NotificationController {
 
     private final EmailNotificationService emailNotificationService;
 
-    @GetMapping("/sent")
-    public String NotificationController() throws Exception {
-        emailNotificationService.sendStatusChangedEmail();
-        return "Successfully email sent";
-    }
+//    @GetMapping("/sent")
+//    public String NotificationController() throws Exception {
+//        emailNotificationService.sendStatusChangedEmail();
+//        return "Successfully email sent";
+//    }
 
 
 
